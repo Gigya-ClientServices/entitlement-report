@@ -2,7 +2,7 @@
   require_once('GSSDK.php');
   require_once('conf/settings.php');
 
-  $debugMode = false;
+  $debugMode = true;
   $certFile = './cacert.pem';
   $proxyMode = false;
   $proxyAddress = '127.0.0.1:8888';
@@ -276,7 +276,7 @@
     /**
       * formatReport
       */
-    function formatReport($sites, $summary, $errors) {
+    function formatReport($sites, $summary, $errors, $debug) {
       addDebug('FormatReport', true);
       $output = array();
       if (count($errors) > 0) {
@@ -287,7 +287,11 @@
         $output['sites'] = $sites;
         $output['summary'] = $summary;
       }
-      return json_encode($output);
+      if (count($debug) > 0) {
+        $output['hasDebug'] = true;
+        $output['debug'] = $debug;
+      }
+      return json_encode($output, JSON_PRETTY_PRINT);
     }
 
   /**
@@ -336,7 +340,7 @@
 
     addDebug('GatherPartnerInformationStep4', true);
     // Step 4: Format results
-    $GLOBALS['results'] = formatReport($GLOBALS['sites'], $GLOBALS['summaries'], $GLOBALS['errors']);
+    $GLOBALS['results'] = formatReport($GLOBALS['sites'], $GLOBALS['summaries'], $GLOBALS['errors'], $GLOBALS['debug']);
   }
 
   /**
@@ -394,5 +398,5 @@
   // =============================================
   // JSON Output Below
   // =============================================
-  echo $results;
 ?>
+<?=$results?>

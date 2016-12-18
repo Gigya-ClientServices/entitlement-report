@@ -91,6 +91,10 @@ div.bottom {
   box-shadow: 5px 5px 5px rgba(128,128,128,128);
 }
 
+.report {
+  display: none;
+}
+
 .report table {
   border: 1px solid #000 !important;
 }
@@ -193,6 +197,8 @@ td.bits {
   max-width: 124px;
   width: 100%;
   margin-top: 1.05rem;
+  display: inline-block;
+  float: left;
 }
 
 .logo svg {

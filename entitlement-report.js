@@ -1,7 +1,34 @@
 var EntitlementReport = {
   submitReport: function(input) {
-    var f = input.form;
-    f.submit();
+    $.ajax(
+      'generate-report.php',
+      {
+        dataType: 'json',
+        method: 'POST',
+        data: {
+          'partnerID': $('#partnerID').val(),
+          'userKey': $('#userKey').val(),
+          'userSecret': $('#userSecret').val()
+        },
+        success: function(data, status, e) {
+          var r = $('#report');
+          r.html(data);
+          r.show();
+        }
+      }
+    );
+  },
+
+  formatTestImage: function(test, img, altText) {
+    var outString = "";
+    if (altText === null) altText = "";
+      if (test) {
+        outString = "<img src='" + img + "' tooltip='" + altText + "' alt='" + altText + "'></img>";
+      } else {
+        outString = "&nbsp;";
+      }
+
+      return outString;
   },
 
   processResults: function(response) {
