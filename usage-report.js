@@ -13,7 +13,7 @@ var UsageReport = {
     o.show();
 
     $.ajax(
-      'https://generate-report.php',
+      'generate-report.php',
       {
         dataType: 'json',
         method: 'POST',
@@ -32,7 +32,7 @@ var UsageReport = {
             r.html(UsageReport.formatResults(data));
           }
           else {
-            alert('Error: ' + errCode + '/n' + JSON.stringify(data.errors));
+            alert('Error Returned: ' + errCode + '/n' + JSON.stringify(data.errors));
           }
         },
         error: function(e, status, errorMessage) {
