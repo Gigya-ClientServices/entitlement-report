@@ -1,4 +1,4 @@
-var EntitlementReport = {
+var UsageReport = {
   submitReport: function(input) {
     var w = $( window ).width();
     var h = $( window ).height();
@@ -29,7 +29,7 @@ var EntitlementReport = {
           if (data.errCode == 0) {
             var r = $('#report');
             r.show();
-            r.html(EntitlementReport.formatResults(data));
+            r.html(UsageReport.formatResults(data));
           }
           else {
             alert('Error: ' + errCode + '/n' + JSON.stringify(data.errors));
@@ -83,14 +83,14 @@ var EntitlementReport = {
                 "<tr border='1px'>" +
                 "<td>" + site.id + "</td>" +
                 "<td>" + site.apiKey +"</td>" +
-                "<td>" + EntitlementReport.formatTestImage(site.hasDS,'img/pass.png','DS Enabled') + "</td>";
+                "<td>" + UsageReport.formatTestImage(site.hasDS,'img/pass.png','DS Enabled') + "</td>";
 
           if (site.hasIdS) {
             outString +=
-            "<td>" + EntitlementReport.formatTestImage(site.hasIdS,'img/pass.png','IdS Enabled') + "</td>" +
-            "<td>" + EntitlementReport.formatTestImage(site.hasRaaS,'img/pass.png','RaaS Enabled') + "</td>" +
-            "<td>" + EntitlementReport.formatTestImage(site.hasSSO,'img/pass.png','SSO Enabled') + "</td>" +
-            "<td>" + EntitlementReport.formatTestImage(site.isParent,'img/pass.png','Site Group Parent') + "</td>" +
+            "<td>" + UsageReport.formatTestImage(site.hasIdS,'img/pass.png','IdS Enabled') + "</td>" +
+            "<td>" + UsageReport.formatTestImage(site.hasRaaS,'img/pass.png','RaaS Enabled') + "</td>" +
+            "<td>" + UsageReport.formatTestImage(site.hasSSO,'img/pass.png','SSO Enabled') + "</td>" +
+            "<td>" + UsageReport.formatTestImage(site.isParent,'img/pass.png','Site Group Parent') + "</td>" +
             "<td>" + site.childSiteCount + "</td>" +
             "<td>" + site.userCount + "</td>" +
             "<td " + ((site.lastLogin == results.summary.lastLogin)?"style='background: #CFC;'":"") + ">" + site.lastLogin + "</td>" +

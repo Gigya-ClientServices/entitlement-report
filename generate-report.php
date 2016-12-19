@@ -3,10 +3,10 @@
   require_once('conf/settings.php');
 
   $debugMode = false;
-  $certFile = './cacert.pem';
+  $certFile = './cert/cacert.pem';
   $proxyMode = false;
   $proxyAddress = '127.0.0.1:8888';
-  $proxyCertFile = './charles-ssl-proxying-certificate.pem';
+  $proxyCertFile = './cert/charles-ssl-proxying-certificate.pem';
 
   if (array_key_exists ("debug", $_GET)) $GLOBALS['debugMode'] = trim($_GET["debug"]);
 

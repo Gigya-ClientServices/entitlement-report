@@ -42,7 +42,7 @@
     <link rel="stylesheet" href="css/loader.css">
 
 		<!-- Page Javascript Logic -->
-		<script src="entitlement-report.js" type="text/javascript"></script>
+		<script src="usage-report.js" type="text/javascript"></script>
 	</head>
 	<body>
 	  <div class="header-global">
