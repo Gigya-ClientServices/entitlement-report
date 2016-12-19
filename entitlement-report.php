@@ -39,6 +39,7 @@
 
 		<!-- Custom CSS -->
 		<link rel="stylesheet" href="css/custom.css">
+    <link rel="stylesheet" href="css/loader.css">
 
 		<!-- Page Javascript Logic -->
 		<script src="entitlement-report.js" type="text/javascript"></script>
@@ -94,7 +95,7 @@
 					</div>
           <div class="form-group">
 						<label class="col-sm-2 control-label">User Secret</label>
-						<div class="col-sm-4">
+						<div class="col-sm-2">
 							<input type="password" id="userSecret" name="userSecret" value="<?=$userSecret?>" class="form-control" autocomplete="new-password">
 						</div>
 					</div>
@@ -107,33 +108,28 @@
 				</div>
 			</div>
 			<div id="report" class="report bs-callout bs-callout-primary bottom">
-				<h4>Report</h4>
-        <div class="row" style="margin: 0px 30px 0px 10px;">
-				<?=$results?>
-        </div>
 			</div>
 			</form>
 		</div>
 	</div>
 	</div>
-  <div class="overlay" style="display: none;">
-    <div class="cssload-dots">
-    	<div class="cssload-dot"></div>
-    	<div class="cssload-dot"></div>
-    	<div class="cssload-dot"></div>
-    	<div class="cssload-dot"></div>
-    	<div class="cssload-dot"></div>
+  <div id="overlay" class="overlay" style="display: none;">
+    <div class="overlay-title">Generating Report</div>
+    <div class="cssload-container">
+    	<div class="cssload-cube">
+    		<div class="cssload-half1">
+    			<div class="cssload-side cssload-s1"></div>
+    			<div class="cssload-side cssload-s2"></div>
+    			<div class="cssload-side cssload-s5"></div>
+    		</div>
+    		<div class="cssload-half2">
+    			<div class="cssload-side cssload-s3"></div>
+    			<div class="cssload-side cssload-s4"></div>
+    			<div class="cssload-side cssload-s6"></div>
+    		</div>
+    	</div>
     </div>
-
-    <svg version="1.1" xmlns="http://www.w3.org/2000/svg">
-    	<defs>
-    		<filter id="goo">
-    			<feGaussianBlur in="SourceGraphic" result="blur" stdDeviation="12" ></feGaussianBlur>
-    			<feColorMatrix in="blur" mode="matrix" values="1 0 0 0 0	0 1 0 0 0	0 0 1 0 0	0 0 0 18 -7" result="goo" ></feColorMatrix>
-    			<!--<feBlend in2="goo" in="SourceGraphic" result="mix" ></feBlend>-->
-    		</filter>
-    	</defs>
-    </svg>
+    <div class="overlay-help">This may take some time...</div>
   </div>
 	</body>
 </html>

@@ -1,5 +1,17 @@
 var EntitlementReport = {
   submitReport: function(input) {
+    var w = $( window ).width();
+    var h = $( window ).height();
+
+    var r = $('#report');
+    r.hide();
+    r.html('');
+
+    var o = $('#overlay')
+    o.width(w);
+    o.height(h - 64);
+    o.show();
+
     $.ajax(
       'generate-report.php',
       {
@@ -11,9 +23,22 @@ var EntitlementReport = {
           'userSecret': $('#userSecret').val()
         },
         success: function(data, status, e) {
-          var r = $('#report');
-          r.html(data);
-          r.show();
+          //alert('success');
+          var o = $('#overlay')
+          o.hide();
+          if (data.errCode == 0) {
+            var r = $('#report');
+            r.show();
+            r.html(EntitlementReport.formatResults(data));
+          }
+          else {
+            alert('Error: ' + errCode + '/n' + JSON.stringify(data.errors));
+          }
+        },
+        error: function(e, status, errorMessage) {
+          var o = $('#overlay')
+          o.hide();
+          alert('Error: ' + status + ' : ' + errorMessage);
         }
       }
     );
@@ -31,64 +56,82 @@ var EntitlementReport = {
       return outString;
   },
 
-  processResults: function(response) {
-
-  },
-
   formatResults: function(results) {
-/*
-      $outString =	"<table class='col-md-12'>" .
-                    "<thead>" .
-                    "<tr>" .
-                    "<th>SiteID</th>" .
-                    "<th>APIKey</th>" .
-                    "<th>DS</th>" .
-                    "<th>IdS</th>" .
-                    "<th>RaaS</th>" .
-                    "<th>SSO</th>" .
-                    "<th>Par</th>" .
-                    "<th>Child Keys</th>" .
-                    "<th>User Count</th>" .
-                    "<th>Last Login</th>" .
-                    "<th>Last Create</th>" .
-                    "</tr>" .
-                    "</thead>" .
-                    "<tbody>";
-      foreach ($sites as $site) {
-        if (!$site['isChild']) {
-          $outString = $outString .
-          "<tr border='1px'>" .
-          "<td>{$site["id"]}</td>" .
-          "<td>{$site["apiKey"]}</td>" .
-          "<td>" . formatTestImage($site['hasDS'],'img/pass.png','DS Enabled') . "</td>";
+    var outString =
+                "<div class='row' style='margin: 0px 30px 0px 10px;''>" +
+                "<table class='col-md-12'>" +
+                "<thead>" +
+                "<tr>" +
+                "<th>SiteID</th>" +
+                "<th>APIKey</th>" +
+                "<th>DS</th>" +
+                "<th>IdS</th>" +
+                "<th>RaaS</th>" +
+                "<th>SSO</th>" +
+                "<th>Par</th>" +
+                "<th>Child Keys</th>" +
+                "<th>User Count</th>" +
+                "<th>Last Login</th>" +
+                "<th>Last Create</th>" +
+                "</tr>" +
+                "</thead>" +
+                "<tbody>";
+      for (siteID in results.sites) {
+        site = results.sites[siteID];
+        if (!site.isChild) {
+          outString +=
+                "<tr border='1px'>" +
+                "<td>" + site.id + "</td>" +
+                "<td>" + site.apiKey +"</td>" +
+                "<td>" + EntitlementReport.formatTestImage(site.hasDS,'img/pass.png','DS Enabled') + "</td>";
 
-          if ($site['hasIdS']) {
-            $outString = $outString .
-            "<td>" . formatTestImage($site['hasIdS'],'img/pass.png','IdS Enabled') . "</td>" .
-            "<td>" . formatTestImage($site['hasRaaS'],'img/pass.png','RaaS Enabled') . "</td>" .
-            "<td>" . formatTestImage($site['hasSSO'],'img/pass.png','SSO Enabled') . "</td>" .
-            "<td>" . formatTestImage($site['isParent'],'img/pass.png','Site Group Parent') . "</td>" .
-            "<td>{$site["childSiteCount"]}</td>" .
-            "<td>{$site["count"]}</td>" .
-            "<td " . (($site["lastLogin"] == $summary["lastLogin"])?"style='background: #CFC;'":"") . ">{$site["lastLogin"]}</td>" .
-            "<td " . (($site["lastCreated"] == $summary["lastCreated"])?"style='background: #CFC;'":"") . ">{$site["lastCreated"]}</td>" .
+          if (site.hasIdS) {
+            outString +=
+            "<td>" + EntitlementReport.formatTestImage(site.hasIdS,'img/pass.png','IdS Enabled') + "</td>" +
+            "<td>" + EntitlementReport.formatTestImage(site.hasRaaS,'img/pass.png','RaaS Enabled') + "</td>" +
+            "<td>" + EntitlementReport.formatTestImage(site.hasSSO,'img/pass.png','SSO Enabled') + "</td>" +
+            "<td>" + EntitlementReport.formatTestImage(site.isParent,'img/pass.png','Site Group Parent') + "</td>" +
+            "<td>" + site.childSiteCount + "</td>" +
+            "<td>" + site.userCount + "</td>" +
+            "<td " + ((site.lastLogin == results.summary.lastLogin)?"style='background: #CFC;'":"") + ">" + site.lastLogin + "</td>" +
+            "<td " + ((site.lastCreated == results.summary.lastCreated)?"style='background: #CFC;'":"") + ">" + site.lastCreated + "</td>" +
             "</tr>";
           } else {
-            $outString = $outString . "<td colspan='8' style='text-align: center; background: #FEE;'>-Social Login Only-</td></tr>";
+            outString += "<td colspan='8' style='text-align: center; background: #FEE;'>-Social Login Only-</td></tr>";
           }
         }
       }
+
       // Summary Info
-      $outString = $outString .
-        "<tr border='1px' style='background: #CCC;'>" .
-        "<td colspan='8'><b>Summary</b></td>" .
-        "<td>{$summary["count"]}</td>" .
-        "<td>{$summary["lastLogin"]}</td>" .
-        "<td>{$summary["lastCreated"]}</td>" .
+      outString +=
+        "<tr border='1px' style='background: #CCC;'>" +
+        "<td colspan='8'><b>Summary</b></td>" +
+        "<td>" + results.summary.userCount + "</td>" +
+        "<td>" + results.summary.lastLogin + "</td>" +
+        "<td>" + results.summary.lastCreated + "</td>" +
         "</tr>";
 
-      $outString = $outString . "</tbody></table>";
+      outString += "</tbody></table></div>";
 
-      return $outString;*/
+      return outString;
+  },
+  insertParam: function(key, value) {
+    key = encodeURI(key);
+    value = encodeURI(value);
+    var kvp = document.location.search.substr(1).split('&');
+    var i=kvp.length;
+    var x;
+    while(i--) {
+      x = kvp[i].split('=');
+
+      if (x[0]==key) {
+        x[1] = value;
+        kvp[i] = x.join('=');
+        break;
+      }
+    }
+    if(i<0) {kvp[kvp.length] = [key,value].join('=');}
+    //this will reload the page, it's likely better to store this until finished
+    document.location.search = kvp.join('&');
   }
 }
