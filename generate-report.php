@@ -3,10 +3,11 @@
   require_once('conf/settings.php');
 
   $debugMode = false;
-  $certFile = './cert/cacert.pem';
+  $enableLogging = false;
+  $certFile = 'cert/cacert.pem';
   $proxyMode = false;
   $proxyAddress = '127.0.0.1:8888';
-  $proxyCertFile = './cert/charles-ssl-proxying-certificate.pem';
+  $proxyCertFile = 'cert/charles-ssl-proxying-certificate.pem';
 
   if (array_key_exists ("debug", $_GET)) $GLOBALS['debugMode'] = trim($_GET["debug"]);
 
@@ -25,10 +26,11 @@
   /**
     * isSecure
     *
-    * Checks that the page is loaded via HTTPS
+    * Checks that the page is loaded via HTTPS (or from localhost)
     *
     */
     function isSecure() {
+      if ($_SERVER['HTTP_HOST'] == 'localhost') return true;
       return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443;
     }
 
@@ -59,6 +61,7 @@
     */
     function addDebug($key, $value)
     {
+      if ($GLOBALS['enableLogging']) error_log($key . ": " . $value);
       if ($GLOBALS['debugMode']) {
         $GLOBALS['debug'][$key] = $value;
       }
@@ -68,8 +71,9 @@
     * initGigya
     */
   function initGigya() {
-    $cafile = realpath('./cacert.pem');
-    if ($GLOBALS['proxyMode']) $cafile = realpath('./charles-ssl-proxying-certificate.pem');
+    addDebug('InitGigyaStart', true);
+    $cafile = realpath($GLOBALS['certFile']);
+    if ($GLOBALS['proxyMode']) $cafile = realpath($GLOBALS['proxyCertFile']);
     GSRequest::setCAFile($cafile);
   }
 
@@ -105,7 +109,7 @@
     }
     else
     {  // Error
-      addError("Error Retrieving Partner Information", $respone->getErrorMessage() . "<br/>" . $response->getResponseText());
+      addError("Error Retrieving Partner Information", $response->getResponseText());
       return false;
     }
     addDebug('GetUserSitesFinish', true);
@@ -354,8 +358,6 @@
     calculateSummary();
 
     addDebug('GatherPartnerInformationStep4', true);
-    // Step 4: Format results
-    $GLOBALS['results'] = formatReport($GLOBALS['sites'], $GLOBALS['summaries'], $GLOBALS['errors'], $GLOBALS['debug']);
   }
 
   /**
@@ -389,6 +391,7 @@
   	* performMain
   	*/
   function performMain() {
+    addDebug("PerformMainStart", true);
 		// Increase allowable execution timeout
 		set_time_limit( 20 );
 
@@ -398,18 +401,29 @@
       echo '<h1>403 Forbidden</h1><p>This resource can only be accessed over "HTTPS".</p>';
       die();
     } else {
+      addDebug("PerformMainCheckEmptyPost", true);
       if (!empty($_POST)) {
+        addDebug("PerformMainIsNotEmptyPost", true);
         if (array_key_exists ('partnerID', $_POST)) $GLOBALS['partnerID'] = trim($_POST['partnerID']);
         if (array_key_exists ('userKey', $_POST)) $GLOBALS['userKey'] = trim($_POST['userKey']);
         if (array_key_exists ('userSecret', $_POST)) $GLOBALS['userSecret'] = trim($_POST['userSecret']);
+      }
+      // Validate form contents
+      addDebug("PerformMainPerformValidation", true);
+      if (performFormValidation()) {
+        addDebug("PerformMainInitGigya", true);
         // Initialize Gigya and perform both local and server-side validation
         initGigya();
 
-        // Validate form contents
-        if (!performFormValidation()) return;
-
+        addDebug("PerformMainGatherInfo", true);
+        // Step 1-3
         gatherPartnerInformation();
       }
+
+      addDebug("PerformMainFomatData", true);
+      // Step 4: Format results
+      $GLOBALS['results'] = formatReport($GLOBALS['sites'], $GLOBALS['summaries'], $GLOBALS['errors'], $GLOBALS['debug']);
+
     }
   }
 

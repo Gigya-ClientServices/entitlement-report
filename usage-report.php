@@ -19,6 +19,25 @@
   $results = "";
 
   $sites = array();
+
+  function checkRedirection() {
+    /* Redirect browser */
+    $ssl      = ( ! empty( $_SERVER['HTTPS'] ) && $_SERVER['HTTPS'] == 'on' );
+    $sp       = strtolower( $_SERVER['SERVER_PROTOCOL'] );
+    $protocol = substr( $sp, 0, strpos( $sp, '/' ) ) . ( ( $ssl ) ? 's' : '' );
+    $url = '';
+    if ($_SERVER['HTTP_HOST'] != 'localhost' && $protocol == 'http') {
+      $url .= 'https://';
+      $url .= $_SERVER['HTTP_HOST'];            // Get the server
+      $url .= rtrim(dirname($_SERVER['PHP_SELF']), '/\\'); // Get the current directory
+      $url .= '/usage-report.php';            // <-- Your relative path
+      header('Location: ' . $url, true, 302);              // Use either 301 or 302
+      /* Make sure that code below does not get executed when we redirect. */
+      die();
+    }
+  }
+
+  checkRedirection();
 ?>
 
 <!DOCTYPE html>
@@ -102,7 +121,7 @@
 					<div class="form-group">
 						<label class="col-sm-2 control-label">&nbsp;</label>
 						<div class="col-sm-10">
-							<input type="button" value="Generate Report" class="btn btn-primary" class="form-control" onClick="EntitlementReport.submitReport(this)">
+							<input type="button" value="Generate Report" class="btn btn-primary" class="form-control" onClick="UsageReport.submitReport(this)">
 						</div>
 					</div>
 				</div>
