@@ -1,3 +1,3 @@
-# Gigya Entitlement Report
+# Gigya Usage Report
 
-A Reporting script that provides entitlement metrics on a given Gigya partner ID.
+A Reporting script that provides usage metrics on a given Gigya partner ID.

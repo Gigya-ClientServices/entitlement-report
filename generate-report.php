@@ -3,10 +3,10 @@
   require_once('conf/settings.php');
 
   $debugMode = false;
-  $certFile = './cacert.pem';
+  $certFile = './cert/cacert.pem';
   $proxyMode = false;
   $proxyAddress = '127.0.0.1:8888';
-  $proxyCertFile = './charles-ssl-proxying-certificate.pem';
+  $proxyCertFile = './cert/charles-ssl-proxying-certificate.pem';
 
   if (array_key_exists ("debug", $_GET)) $GLOBALS['debugMode'] = trim($_GET["debug"]);
 
@@ -206,10 +206,10 @@
         if ($results->length() > 0) {
           $ret = $results->getObject(0)->getString('lastLogin');
         } else {
-          $ret = 'Never';
+          $ret = '-Never-';
         }
       } catch (Exception $e) {
-        $ret = 'Never';
+        $ret = '-Never-';
       }
     }
     else {
@@ -242,10 +242,10 @@
         if ($results->length() > 0) {
           $ret = $results->getObject(0)->getString('created');
         } else {
-          $ret = 'Never';
+          $ret = '-Never-';
         }
       } catch (Exception $e) {
-        $ret = 'Never';
+        $ret = '-Never-';
       }
     }
     else {
@@ -263,11 +263,11 @@
     $lastLogin = '';
     $lastCreated = '';
     foreach ($GLOBALS['sites'] as $site) {
-      $totalUsers = $totalUsers + $site['count'];
+      $totalUsers = $totalUsers + $site['userCount'];
       if ($site['lastLogin'] > $lastLogin) $lastLogin = $site['lastLogin'];
       if ($site['lastCreated'] > $lastCreated) $lastCreated = $site['lastCreated'];
     }
-    $GLOBALS['summaries']['count'] = $totalUsers;
+    $GLOBALS['summaries']['userCount'] = $totalUsers;
     $GLOBALS['summaries']['lastLogin'] = $lastLogin;
     $GLOBALS['summaries']['lastCreated'] = $lastCreated;
   }
@@ -276,7 +276,7 @@
     /**
       * formatReport
       */
-    function formatReport($sites, $summary, $errors) {
+    function formatReport($sites, $summary, $errors, $debug) {
       addDebug('FormatReport', true);
       $output = array();
       if (count($errors) > 0) {
@@ -287,7 +287,11 @@
         $output['sites'] = $sites;
         $output['summary'] = $summary;
       }
-      return json_encode($output);
+      if (count($debug) > 0) {
+        $output['hasDebug'] = true;
+        $output['debug'] = $debug;
+      }
+      return json_encode($output, JSON_PRETTY_PRINT);
     }
 
   /**
@@ -312,20 +316,24 @@
         $GLOBALS['sites'][$id] = array_merge($GLOBALS['sites'][$id], $siteConfig);
       }
 
+      $GLOBALS['sites'][$id]['userCount'] = null;
+      $GLOBALS['sites'][$id]['lastLogin'] = null;
+      $GLOBALS['sites'][$id]['lastCreated'] = null;
+
       // Get Metrics from IdS enabled sites
       if (!$GLOBALS['sites'][$id]['isChild'] && $GLOBALS['sites'][$id]['hasIdS'] ) {
         // Get User Count from IdS enabled sites
-        $GLOBALS['sites'][$id]['count'] = 0;
+        $GLOBALS['sites'][$id]['userCount'] = 0;
         $count = retrieveUserCounts($site['apiKey'], $site['dc']);
-        if ($count != null) $GLOBALS['sites'][$id]['count'] = $count;
+        if ($count != null) $GLOBALS['sites'][$id]['userCount'] = $count;
         // Get Last login from IdS enabled sites
         $GLOBALS['sites'][$id]['lastLogin'] = '-Never-';
         $lastLogin = retrieveLastLogin($site['apiKey'], $site['dc']);
-        if ($count != null) $GLOBALS['sites'][$id]['lastLogin'] = $lastLogin;
+        if ($lastLogin != null) $GLOBALS['sites'][$id]['lastLogin'] = $lastLogin;
         // Get Last created from IdS enabled sites
         $GLOBALS['sites'][$id]['lastCreated'] = '-Never-';
         $lastCreated  = retrieveLastCreated($site['apiKey'], $site['dc']);
-        if ($count != null) $GLOBALS['sites'][$id]['lastCreated'] = $lastCreated;
+        if ($lastCreated != null) $GLOBALS['sites'][$id]['lastCreated'] = $lastCreated;
       }
     }
 
@@ -336,7 +344,7 @@
 
     addDebug('GatherPartnerInformationStep4', true);
     // Step 4: Format results
-    $GLOBALS['results'] = formatReport($GLOBALS['sites'], $GLOBALS['summaries'], $GLOBALS['errors']);
+    $GLOBALS['results'] = formatReport($GLOBALS['sites'], $GLOBALS['summaries'], $GLOBALS['errors'], $GLOBALS['debug']);
   }
 
   /**
@@ -372,13 +380,11 @@
   function performMain() {
 		// Increase allowable execution timeout
 		set_time_limit( 20 );
-
     if (!empty($_POST))
     {
       if (array_key_exists ('partnerID', $_POST)) $GLOBALS['partnerID'] = trim($_POST['partnerID']);
       if (array_key_exists ('userKey', $_POST)) $GLOBALS['userKey'] = trim($_POST['userKey']);
       if (array_key_exists ('userSecret', $_POST)) $GLOBALS['userSecret'] = trim($_POST['userSecret']);
-
       // Initialize Gigya and perform both local and server-side validation
       initGigya();
 
