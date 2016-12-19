@@ -59,9 +59,12 @@ var UsageReport = {
   formatResults: function(results) {
     var outString =
                 "<div class='row' style='margin: 0px 30px 0px 10px;''>" +
-                "<h3>Report for '" + results.partner.companyName + "' (" + results.partner.partnerID + ")" +
+                "<h3>Report for '" + results.partner.companyName + "' (" + results.partner.partnerID + ") &nbsp;" +
+                ((results.partner.isEnabled)?"<span class='label label-success'>Enabled</span>":"<span class='label label-danger'>Disabled</span>") +
+                ((results.partner.isTrial)?" &nbsp;<span class='label label-info'>Trial Account</span>":"") +
+                "</h3>" +
                 "<h4>Enabled Services</h4>" +
-                "<table class='col-md-12'>" +
+                "<table class='col-md-12 table-bordered'>" +
                 "<thead>" +
                 "<tr>" +
                 "<th>GM</th>" +
@@ -88,11 +91,11 @@ var UsageReport = {
                 "<td>" + UsageReport.formatTestImage(results.partner.allowsSAMLIdP,'img/pass.png','SAML IdP') + "</td>" +
                 "<td>" + UsageReport.formatTestImage(results.partner.allowsAudit,'img/pass.png','Audit Log') + "</td>" +
                 "<td>" + UsageReport.formatTestImage(results.partner.allowsNexus,'img/pass.png','Nexus Integrations') + "</td>" +
-                "</tr></tbody></table><br/>";
+                "</tr></tbody></table><br/><br/>";
 
     outString +=
                 "<h4>Sites</h4>" +
-                "<table class='col-md-12'>" +
+                "<table class='col-md-12 table-striped table-bordered'>" +
                 "<thead>" +
                 "<tr>" +
                 "<th>SiteID</th>" +
