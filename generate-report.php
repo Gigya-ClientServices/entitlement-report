@@ -21,6 +21,17 @@
 
   $sites = array();
 
+
+  /**
+    * isSecure
+    *
+    * Checks that the page is loaded via HTTPS
+    *
+    */
+    function isSecure() {
+      return (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') || $_SERVER['SERVER_PORT'] == 443;
+    }
+
   /**
     * addError
     *
@@ -380,18 +391,25 @@
   function performMain() {
 		// Increase allowable execution timeout
 		set_time_limit( 20 );
-    if (!empty($_POST))
-    {
-      if (array_key_exists ('partnerID', $_POST)) $GLOBALS['partnerID'] = trim($_POST['partnerID']);
-      if (array_key_exists ('userKey', $_POST)) $GLOBALS['userKey'] = trim($_POST['userKey']);
-      if (array_key_exists ('userSecret', $_POST)) $GLOBALS['userSecret'] = trim($_POST['userSecret']);
-      // Initialize Gigya and perform both local and server-side validation
-      initGigya();
 
-      // Validate form contents
-      if (!performFormValidation()) return;
+    // Ensure that this is only called securely
+    if (!isSecure()) {
+      header('HTTP/1.0 403 Forbidden');
+      echo '<h1>403 Forbidden</h1><p>This resource can only be accessed over "HTTPS".</p>';
+      die();
+    } else {
+      if (!empty($_POST)) {
+        if (array_key_exists ('partnerID', $_POST)) $GLOBALS['partnerID'] = trim($_POST['partnerID']);
+        if (array_key_exists ('userKey', $_POST)) $GLOBALS['userKey'] = trim($_POST['userKey']);
+        if (array_key_exists ('userSecret', $_POST)) $GLOBALS['userSecret'] = trim($_POST['userSecret']);
+        // Initialize Gigya and perform both local and server-side validation
+        initGigya();
 
-      gatherPartnerInformation();
+        // Validate form contents
+        if (!performFormValidation()) return;
+
+        gatherPartnerInformation();
+      }
     }
   }
 

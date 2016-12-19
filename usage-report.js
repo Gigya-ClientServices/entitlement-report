@@ -13,7 +13,7 @@ var UsageReport = {
     o.show();
 
     $.ajax(
-      'generate-report.php',
+      'https://generate-report.php',
       {
         dataType: 'json',
         method: 'POST',
