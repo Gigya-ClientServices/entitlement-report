@@ -26,19 +26,19 @@ var UsageReport = {
           //alert('success');
           var o = $('#overlay')
           o.hide();
+          var r = $('#report');
+          r.show();
           if (data.errCode == 0) {
-            var r = $('#report');
-            r.show();
             r.html(UsageReport.formatResults(data));
-          }
-          else {
-            alert('Error Returned: ' + errCode + '/n' + JSON.stringify(data.errors));
+          } else {
+            r.html(UsageReport.formatErrors(data.errors));
           }
         },
         error: function(e, status, errorMessage) {
           var o = $('#overlay')
           o.hide();
-          alert('Error: ' + status + ' : ' + errorMessage);
+          $('#modal-error-text').html('<p>' + status + ' : ' + errorMessage + '</p>');
+          $('#error-modal').modal('show');
         }
       }
     );
@@ -115,23 +115,13 @@ var UsageReport = {
 
       return outString;
   },
-  insertParam: function(key, value) {
-    key = encodeURI(key);
-    value = encodeURI(value);
-    var kvp = document.location.search.substr(1).split('&');
-    var i=kvp.length;
-    var x;
-    while(i--) {
-      x = kvp[i].split('=');
 
-      if (x[0]==key) {
-        x[1] = value;
-        kvp[i] = x.join('=');
-        break;
-      }
+  formatErrors: function(errors) {
+    var outString = ""
+    for (errorIndex in errors) {
+        error = errors[errorIndex];
+    		outString += '<div class="bs-callout bs-callout-danger"><h4>' + error.message + '</h4><pre>' + error.log + '</pre></div>'
     }
-    if(i<0) {kvp[kvp.length] = [key,value].join('=');}
-    //this will reload the page, it's likely better to store this until finished
-    document.location.search = kvp.join('&');
+    return outString;
   }
 }
