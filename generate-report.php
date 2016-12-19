@@ -20,6 +20,7 @@
   $summaries = array();
   $results = "";
 
+  $partnerInfo = array();
   $sites = array();
 
 
@@ -78,6 +79,62 @@
   }
 
   /**
+    * getPartner
+    */
+  function getPartner($apiKey, $dc) {
+    addDebug('GetPartnerStart', true);
+    // Retrieve Partner Info
+    // =====================
+    $method = "admin.getPartner";
+    $request = new GSRequest($apiKey, $GLOBALS['userSecret'], $method, null, true, $GLOBALS['userKey']);
+    $request->setParam("partnerID", $GLOBALS['partnerID']);
+    $request->setAPIDomain($dc . ".gigya.com");
+    if ($GLOBALS['proxyMode']) $request->setProxy($GLOBALS['proxyAddress']);
+    $response = $request->send();
+
+    if($response->getErrorCode()==0)
+    {
+      // SUCCESS! response status = OK
+      addDebug('GetPartnerSuccess', true);
+      $GLOBALS['partnerInfo']['partnerID'] = $response->getString('partnerID');
+      $GLOBALS['partnerInfo']['isTrial'] = $response->getBool('isTrial');
+      $GLOBALS['partnerInfo']['isEnabled'] = $response->getBool('isEnabled');
+      $GLOBALS['partnerInfo']['dataCenter'] = $response->getString('defaultDataCenter');
+      $GLOBALS['partnerInfo']['companyName'] = $response->getObject('customData')->getString('companyName');
+
+      $services = $response->getObject('services');
+      $GLOBALS['partnerInfo']['allowsComments'] = $services->getObject('comments')->getBool('enabled');
+      $GLOBALS['partnerInfo']['allowsGM'] = $services->getObject('gm')->getBool('enabled');
+      $GLOBALS['partnerInfo']['allowsDS'] = $services->getObject('ds')->getBool('enabled');
+      $GLOBALS['partnerInfo']['allowsIdS'] = $services->getObject('ids')->getBool('enabled');
+      $GLOBALS['partnerInfo']['allowsAudit'] = $services->getObject('audit')->getBool('enabled');
+      $GLOBALS['partnerInfo']['allowsSAMLIdP'] = $services->getObject('samlIdp')->getBool('enabled');
+      $GLOBALS['partnerInfo']['allowsNexus'] = $services->getObject('nexus')->getBool('enabled');
+
+      $accounts = $services->getObject('accounts');
+      $GLOBALS['partnerInfo']['allowsRaaS'] = $accounts->getBool('enabled');
+
+      $accountFeatures = $accounts->getArray('features');
+      $GLOBALS['partnerInfo']['allowsCI'] = false;
+      $GLOBALS['partnerInfo']['allowsCounters'] = false;
+      if ($accountFeatures != null) {
+        for ($i = 0; $i < $accountFeatures->length(); $i++) {
+          $str =  $accountFeatures->getString($i);
+          if ($str == 'insights') $GLOBALS['partnerInfo']['allowsCI'] = true;
+          if ($str == 'counters') $GLOBALS['partnerInfo']['allowsCounters'] = true;
+        }
+      }
+    }
+    else
+    {  // Error
+      addError("Error Retrieving Partner Information", $response->getResponseText());
+      return false;
+    }
+    addDebug('GetPartnerFinsih', true);
+    return true;
+  }
+
+  /**
     * getUserSites
     */
   function getUserSites() {
@@ -109,7 +166,7 @@
     }
     else
     {  // Error
-      addError("Error Retrieving Partner Information", $response->getResponseText());
+      addError("Error Retrieving Partner Site Information", $response->getResponseText());
       return false;
     }
     addDebug('GetUserSitesFinish', true);
@@ -291,7 +348,7 @@
     /**
       * formatReport
       */
-    function formatReport($sites, $summary, $errors, $debug) {
+    function formatReport($partner, $sites, $summary, $errors, $debug) {
       addDebug('FormatReport', true);
       $output = array();
       if (count($errors) > 0) {
@@ -299,6 +356,7 @@
         $output['errors'] = $errors;
       } else {
         $output['errCode'] = 0;
+        $output['partner'] = $partner;
         $output['sites'] = $sites;
         $output['summary'] = $summary;
       }
@@ -314,6 +372,7 @@
   	*/
   function gatherPartnerInformation() {
     addDebug('GatherPartnerInformationStep1', true);
+    $firstCount = true;
     // Step 1: Retrieve User Sites for Partner
     // =======================================
     if (!getUserSites()) return;
@@ -334,6 +393,12 @@
       $GLOBALS['sites'][$id]['userCount'] = null;
       $GLOBALS['sites'][$id]['lastLogin'] = null;
       $GLOBALS['sites'][$id]['lastCreated'] = null;
+
+      // First site we load use to get the Partner Information
+      if ($firstCount) {
+        getPartner($site['apiKey'], $site['dc']);
+        $firstCount = false;
+      }
 
       // Get Metrics from IdS enabled sites
       if (!$GLOBALS['sites'][$id]['isChild'] && $GLOBALS['sites'][$id]['hasIdS'] ) {
@@ -422,7 +487,7 @@
 
       addDebug("PerformMainFomatData", true);
       // Step 4: Format results
-      $GLOBALS['results'] = formatReport($GLOBALS['sites'], $GLOBALS['summaries'], $GLOBALS['errors'], $GLOBALS['debug']);
+      $GLOBALS['results'] = formatReport($GLOBALS['partnerInfo'], $GLOBALS['sites'], $GLOBALS['summaries'], $GLOBALS['errors'], $GLOBALS['debug']);
 
     }
   }

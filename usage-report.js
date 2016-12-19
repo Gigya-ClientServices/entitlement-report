@@ -59,6 +59,39 @@ var UsageReport = {
   formatResults: function(results) {
     var outString =
                 "<div class='row' style='margin: 0px 30px 0px 10px;''>" +
+                "<h3>Report for '" + results.partner.companyName + "' (" + results.partner.partnerID + ")" +
+                "<h4>Enabled Services</h4>" +
+                "<table class='col-md-12'>" +
+                "<thead>" +
+                "<tr>" +
+                "<th>GM</th>" +
+                "<th>Comments</th>" +
+                "<th>DS</th>" +
+                "<th>IdS</th>" +
+                "<th>RaaS</th>" +
+                "<th>CI</th>" +
+                "<th>Counters</th>" +
+                "<th>SAML IdP</th>" +
+                "<th>Audits</th>" +
+                "<th>Nexus</th>" +
+                "</tr>" +
+                "</thead>" +
+                "<tbody>" +
+                "<tr>" +
+                "<td>" + UsageReport.formatTestImage(results.partner.allowsGM,'img/pass.png','Game Mechanics') + "</td>" +
+                "<td>" + UsageReport.formatTestImage(results.partner.allowsComments,'img/pass.png','Comments') + "</td>" +
+                "<td>" + UsageReport.formatTestImage(results.partner.allowsDS,'img/pass.png','DS') + "</td>" +
+                "<td>" + UsageReport.formatTestImage(results.partner.allowsIdS,'img/pass.png','IdS') + "</td>" +
+                "<td>" + UsageReport.formatTestImage(results.partner.allowsRaaS,'img/pass.png','RaaS') + "</td>" +
+                "<td>" + UsageReport.formatTestImage(results.partner.allowsCI,'img/pass.png','Consumer Insights') + "</td>" +
+                "<td>" + UsageReport.formatTestImage(results.partner.allowsCounters,'img/pass.png','Counters') + "</td>" +
+                "<td>" + UsageReport.formatTestImage(results.partner.allowsSAMLIdP,'img/pass.png','SAML IdP') + "</td>" +
+                "<td>" + UsageReport.formatTestImage(results.partner.allowsAudit,'img/pass.png','Audit Log') + "</td>" +
+                "<td>" + UsageReport.formatTestImage(results.partner.allowsNexus,'img/pass.png','Nexus Integrations') + "</td>" +
+                "</tr></tbody></table><br/>";
+
+    outString +=
+                "<h4>Sites</h4>" +
                 "<table class='col-md-12'>" +
                 "<thead>" +
                 "<tr>" +
