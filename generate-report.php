@@ -1,6 +1,14 @@
 <?php
   require_once('GSSDK.php');
+  require_once('lib/monthDate.php');
   require_once('conf/settings.php');
+
+  abstract class UsageReportModes
+  {
+    const Complete = 0;
+    const Summary = 1;
+    // etc.
+  }
 
   $debugMode = false;
   $enableLogging = false;
@@ -14,6 +22,13 @@
   $partnerID = "";
   $userKey = "";
   $userSecret = "";
+  $includeSegments = false;
+  $startMonth = null;
+  $startYear = null;
+  $endMonth = null;
+  $endYear = null;
+
+  $mode = UsageReportMOdes::Complete;
 
   $debug = array();
   $errors = array();
@@ -440,6 +455,21 @@
       array_push($missingFields, "User Secret");
     }
 
+    if ($GLOBALS['includeSegments'] == true) {
+      if ($GLOBALS['startMonth'] == null) {
+        array_push($missingFields, "Start Month");
+      }
+      if ($GLOBALS['startYear'] == null) {
+        array_push($missingFields, "Start Year");
+      }
+      if ($GLOBALS['endMonth'] == null) {
+        array_push($missingFields, "End Month");
+      }
+      if ($GLOBALS['endYear'] == null) {
+        array_push($missingFields, "End Year");
+      }
+    }
+    
     if (count($missingFields) > 0) {
       $msg = "The following fields are missing: ";
 
@@ -472,6 +502,11 @@
         if (array_key_exists ('partnerID', $_POST)) $GLOBALS['partnerID'] = trim($_POST['partnerID']);
         if (array_key_exists ('userKey', $_POST)) $GLOBALS['userKey'] = trim($_POST['userKey']);
         if (array_key_exists ('userSecret', $_POST)) $GLOBALS['userSecret'] = trim($_POST['userSecret']);
+        if (array_key_exists ('includeSegments', $_POST)) $GLOBALS['includeSegments'] = trim($_POST['includeSegments']);
+        if (array_key_exists ('startMonth', $_POST)) $GLOBALS['startMonth'] = trim($_POST['startMonth']);
+        if (array_key_exists ('startYear', $_POST)) $GLOBALS['startYear'] = trim($_POST['startYear']);
+        if (array_key_exists ('endMonth', $_POST)) $GLOBALS['endMonth'] = trim($_POST['endMonth']);
+        if (array_key_exists ('endYear', $_POST)) $GLOBALS['endYear'] = trim($_POST['endYear']);
       }
       // Validate form contents
       addDebug("PerformMainPerformValidation", true);

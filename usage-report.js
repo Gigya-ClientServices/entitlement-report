@@ -159,5 +159,25 @@ var UsageReport = {
     		outString += '<div class="bs-callout bs-callout-danger"><h4>' + error.message + '</h4><pre>' + error.log + '</pre></div>'
     }
     return outString;
+  },
+
+  updateSettings: function(settings) {
+    if (settings) {
+      $('.start-month').show();
+      $('.start-year').show();
+      $('.end-month').show();
+      $('.end-year').show();
+    } else {
+      $('.start-month').hide();
+      $('.start-year').hide();
+      $('.end-month').hide();
+      $('.end-year').hide();
+    }
+  },
+
+  includeSegmentsChanged: function(input) {
+    var c = input.checked;
+    UsageReport.updateSettings(c);
   }
+
 }

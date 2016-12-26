@@ -8,6 +8,10 @@ body {
   padding: 0px;
 }
 
+.end-month, .start-month { 
+  display: none;
+}
+
 div.overlay {
   background-color: #333;
   opacity: 0.8;
