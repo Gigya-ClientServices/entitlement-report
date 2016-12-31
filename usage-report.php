@@ -1,7 +1,5 @@
 <?php
-  require_once('GSSDK.php');
-  require_once('conf/settings.php');
-
+  $config = include('conf/settings.php');
   $title = "Usage Report";
   $debugMode = false;
   $proxyMode = false;
@@ -132,7 +130,7 @@
 						</div>
             <label class="col-sm-2 control-label">Include Segments</label>
             <div class="col-sm-2">
-							<input type="checkbox" id="includeSegment" name="includeSegment" <?=($includeSegment)?"checked":""?> class="checkbox-inline" style="margin-top: 10px !important;" onchange="UsageReport.includeSegmentsChanged(this);">
+							<input type="checkbox" id="includeSegments" name="includeSegments" <?=($includeSegment)?"checked":""?> class="checkbox-inline" style="margin-top: 10px !important;" onchange="UsageReport.includeSegmentsChanged(this);">
 						</div>
 					</div>
 					<div class="form-group">

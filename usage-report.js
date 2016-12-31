@@ -20,7 +20,12 @@ var UsageReport = {
         data: {
           'partnerID': $('#partnerID').val(),
           'userKey': $('#userKey').val(),
-          'userSecret': $('#userSecret').val()
+          'userSecret': $('#userSecret').val(),
+          'includeSegments': $('#includeSegments').is(':checked'),
+          'startMonth': $('#startMonth').val(),
+          'startYear': $('#startYear').val(),
+          'endMonth': $('#endMonth').val(),
+          'endYear': $('#endYear').val()
         },
         success: function(data, status, e) {
           //alert('success');
@@ -156,7 +161,7 @@ var UsageReport = {
     var outString = ""
     for (errorIndex in errors) {
         error = errors[errorIndex];
-    		outString += '<div class="bs-callout bs-callout-danger"><h4>' + error.message + '</h4><pre>' + error.log + '</pre></div>'
+    		outString += '<div class="bs-callout bs-callout-danger"><h4>' + error.message + '</h4><pre>' + error.extended + '</pre></div>'
     }
     return outString;
   },

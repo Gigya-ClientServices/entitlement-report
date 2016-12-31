@@ -43,7 +43,7 @@
       $m = $this->boundMonth($mn);
       $y = $this->boundYear($yr);
       if ($m == 1) {
-        $m = 12
+        $m = 12;
         $y--;
       } else {
         $m--;
@@ -55,7 +55,7 @@
       $m = $this->boundMonth($mn);
       $y = $this->boundYear($yr);
       if ($m == 12) {
-        $m = 1
+        $m = 1;
         $y++;
       } else {
         $m++;
@@ -63,5 +63,19 @@
       return array("year" => $y, "month" => $m);
     }
 
+    public function getMonthsList($startMonth, $startYear, $endMonth, $endYear) {
+      $list = array();
+      $currentMonth = $startMonth;
+      $currentYear = $startYear;
+      $endDate = $this->followingMonth($endMonth, $endYear);
+      do  {
+        array_push($list, array("year" => $currentYear, "month" => $currentMonth));
+        $temp = $this->followingMonth($currentMonth, $currentYear);
+        $currentMonth = $temp["month"];
+        $currentYear= $temp["year"];
+      } while ($currentYear != $endDate["year"] && $currentMonth != $endDate["month"]);
+
+      return $list;
+    }
   }
 ?>
