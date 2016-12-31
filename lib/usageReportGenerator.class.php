@@ -1,7 +1,8 @@
 <?php
+require_once('lib/logger.class.php');
 require_once('lib/gigyaUtils.class.php');
 require_once('lib/monthDate.class.php');
-require_once('lib/logger.class.php');
+require_once('lib/dataCache.class.php');
 
 class UsageReportGenerator {
   private $config;
@@ -32,6 +33,11 @@ class UsageReportGenerator {
     $this->partnerID = $params['partnerID'];
     $this->userKey = $params['userKey'];
     $this->userSecret = $params['userSecret'];
+    $this->includeSegments = $params['includeSegments'];
+    $this->startMonth = $params['startMonth'];
+    $this->startYear = $params['startYear'];
+    $this->endMonth = $params['endMonth'];
+    $this->endYear = $params['endYear'];
     $this->gigyaUtils = new GigyaUtils($this->userKey, $this->userSecret, $config);
   }
 
@@ -187,13 +193,40 @@ class UsageReportGenerator {
   }
 
   /**
+    * retrieveUserCountsForMonth
+    */
+  private function retrieveUserCountsForMonth($apiKey, $dc, $siteId, $month, $year) {
+    $this->logger->addLog('RetrieveUserCountsForMonthStart', "{$month}/{$year}", LogLevels::debug);
+    // TODO: Check Database Cache for values first, if the value does not exist or is expired continue
+
+    $query = "select count(*) from accounts where created <= '" . MonthDate::lastMomentOf($month, $year) . "'";
+    $this->logger->addLog('RetrieveUserCountsForMonthQuery', $query, LogLevels::debug);
+    $response = $this->gigyaUtils->query($apiKey, $dc, $query);
+    $ret = 0;
+    if($response->getErrorCode()==0)
+    {
+      $this->logger->addLog('RetrieveUserCountsForMonthSuccess', $response->getResponseText(), LogLevels::debug);
+      $ret = $response->getArray('results')->getObject(0)->getInt('count(*)');
+    }
+    else {
+      $this->logger->addLog("Errors retrieving counts: " . $response->getErrorMessage(), $response->getResponseText(), LogLevels::error);
+      return null;
+    }
+
+    // TODO: Store values into cache if they were retrieved
+
+    $this->logger->addLog('RetrieveUserCountsForMonthSuccess', "", LogLevels::debug);
+    return $ret;
+  }
+
+  /**
     * retrieveUserCounts
     */
   private function retrieveUserCounts($apiKey, $dc) {
     $this->logger->addLog('RetrieveUserCountsStart', "", LogLevels::debug);
 
     $query = "select count(*) from accounts";
-    $response = $response = $this->gigyaUtils->query($apiKey, $dc, $query);
+    $response = $this->gigyaUtils->query($apiKey, $dc, $query);
     $ret = 0;
     if($response->getErrorCode()==0)
     {
@@ -215,7 +248,7 @@ class UsageReportGenerator {
   private function retrieveLastLogin($apiKey, $dc) {
     $this->logger->addLog('RetrieveLastLoginStart', "", LogLevels::debug);
     $query = "select lastLogin from accounts order by lastLogin DESC limit 1";
-    $response = $response = $this->gigyaUtils->query($apiKey, $dc, $query);
+    $response = $this->gigyaUtils->query($apiKey, $dc, $query);
 
     $ret = '';
 
@@ -248,7 +281,7 @@ class UsageReportGenerator {
   private function retrieveLastCreated($apiKey, $dc) {
     $this->logger->addLog('RetrieveLastCreatedStart', "", LogLevels::debug);
     $query = "select created from accounts order by created DESC limit 1";
-    $response = $response = $this->gigyaUtils->query($apiKey, $dc, $query);
+    $response = $this->gigyaUtils->query($apiKey, $dc, $query);
 
     $ret = '';
 
@@ -283,14 +316,34 @@ class UsageReportGenerator {
     $totalUsers = 0;
     $lastLogin = '';
     $lastCreated = '';
+    $segmentLabels = array();
+    $segmentData = array();
     foreach ($this->sites as $site) {
       $totalUsers = $totalUsers + $site['userCount'];
       if ($site['lastLogin'] > $lastLogin) $lastLogin = $site['lastLogin'];
       if ($site['lastCreated'] > $lastCreated) $lastCreated = $site['lastCreated'];
+      if ($this->includeSegments) {
+        for ($i = 0; $i < count($site['segments']['labels']); $i++) {
+          if ($segmentLabels[$i] === NULL) $segmentLabels[$i] = $site['segments']['labels'][$i];
+          if ($segmentData[$i] === NULL)
+          {
+            $segmentData[$i] = $site['segments']['data'][$i];
+          }
+          else {
+            $segmentData[$i] += $site['segments']['data'][$i];
+          }
+        }
+      }
     }
     $this->summaries['userCount'] = $totalUsers;
     $this->summaries['lastLogin'] = $lastLogin;
     $this->summaries['lastCreated'] = $lastCreated;
+    if ($this->includeSegments) {
+      $this->summaries['segments'] = array(
+        'labels' => $segmentLabels,
+        'data' => $segmentData
+      );
+    }
   }
 
 
@@ -305,6 +358,10 @@ class UsageReportGenerator {
 
     // Step 2: Loop through all the sites calling and gather additional information
     // ============================================================================
+    $datesArray = null;
+    $asd = MonthDate::previousMonth($this->startMonth, $this->startYear);
+    if ($this->includeSegments) $datesArray = MonthDate::getMonthsList($asd['month'], $asd['year'], $this->endMonth, $this->endYear);
+
     foreach ($this->sites as $site) {
       // Get Site configuration for the site
       $id = $site['id'];
@@ -342,6 +399,25 @@ class UsageReportGenerator {
         $this->sites[$id]['lastCreated'] = '-Never-';
         $lastCreated = $this->retrieveLastCreated($apiKey, $dc);
         if ($lastCreated != null) $this->sites[$id]['lastCreated'] = $lastCreated;
+
+        // Get Month-by-month metrics
+        if ($this->includeSegments) {
+          $this->sites[$id]['segments'] = array (
+            'labels' => array(),
+            'data' => array(),
+          );
+          foreach ($datesArray as $dates) {
+            $m = $dates['month'];
+            $y = $dates['year'];
+
+            $monthCount = $this->retrieveUserCountsForMonth($apiKey, $dc, $id, $m, $y);
+            if ($monthCount != null) {
+              $zpm = str_pad($m,2,'0',STR_PAD_LEFT);
+              array_push($this->sites[$id]['segments']['labels'], "{$y}-{$zpm}");
+              array_push($this->sites[$id]['segments']['data'], $monthCount);
+            }
+          }
+        }
       }
     }
 
@@ -381,6 +457,7 @@ class UsageReportGenerator {
   	* performDataValidation
   	*/
   private function performDataValidation() {
+    $ret = true;
     $missingFields = array();
     if ($this->partnerID == "") {
       array_push($missingFields, "Partner ID");
@@ -405,6 +482,14 @@ class UsageReportGenerator {
       if ($this->endYear == null) {
         array_push($missingFields, "End Year");
       }
+
+      $s = "{$this->startYear}-{$this->startMonth}";
+      $e = "{$this->endYear}-{$this->endMonth}";
+
+      if ($s > $e) {
+        $this->logger->addLog("Form Validation", "Starting Date must be on or before Ending Date", LogLevels::error);
+        $ret = false;
+      }
     }
 
     if (count($missingFields) > 0) {
@@ -415,9 +500,9 @@ class UsageReportGenerator {
       }
 
       $this->logger->addLog("Form Validation", $msg, LogLevels::error);
-      return false;
+      $ret = false;
     }
-    return true;
+    return $ret;
   }
 
   public function getReport() {
