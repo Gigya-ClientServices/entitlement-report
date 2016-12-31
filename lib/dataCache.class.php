@@ -1,16 +1,16 @@
 <?php
   require_once('conf/settings.php');
   class DataCache {
-    private dbConn;
+    private $dbConn;
 
-    function __construct() {
+    public function __construct() {
         $this->dbConn = null;
         if (!initDB()) {
           throw new Exception("Database connection failed: " . mysqli_connect_error());
         }
     }
 
-    function initDB() {
+    private function initDB() {
         $this->dbConn = new mysqli($GLOBALS['mysql_server'], $GLOBALS['mysql_user'], $GLOBALS['mysql_pass']);
 
         // Check connection

@@ -7,41 +7,41 @@
     const month = 1;
 
     public function boundYear($yr) {
-      if ($yr === null) $yr = $this->year;
+      if ($yr === null) $yr = MonthDate::year;
       return $yr;
     }
 
     public function boundMonth($mn) {
-      if ($mn === null) $mn = $this->month;
+      if ($mn === null) $mn = MonthDate::month;
       if ($mn < 1) $mn = 1;
       if ($mn > 12) $mn = 12;
       return $mn;
     }
 
     public function lastDayOf($mn,$yr) {
-      $y = $this->boundYear($yr);
-      $m = $this->boundMonth($mn);
+      $y = MonthDate::boundYear($yr);
+      $m = MonthDate::boundMonth($mn);
       $d = cal_days_in_month(CAL_GREGORIAN, $m, $y);
       return $d;
     }
 
     public function lastMomentOf($mn,$yr) {
-      $d = $this->lastDayOf($mn,$yr);
-      $m = $this->boundMonth($mn);
-      $y = $this->boundYear($yr);
+      $d = MonthDate::lastDayOf($mn,$yr);
+      $m = MonthDate::boundMonth($mn);
+      $y = MonthDate::boundYear($yr);
 
-      return "{$y}-{$m}-{$d}T" . $dayEnd . "Z";
+      return "{$y}-{$m}-{$d}T" . MonthDate::dayEnd . "Z";
     }
 
     public function firstMomentOf($mn,$yr) {
-      $m = $this->boundMonth($mn);
-      $y = $this->boundYear($yr);
-      return "{$y}-{$m}-01T" . $dayStart . "Z";
+      $m = MonthDate::boundMonth($mn);
+      $y = MonthDate::boundYear($yr);
+      return "{$y}-{$m}-01T" . MonthDate::dayStart . "Z";
     }
 
     public function previousMonth($mn,$yr) {
-      $m = $this->boundMonth($mn);
-      $y = $this->boundYear($yr);
+      $m = MonthDate::boundMonth($mn);
+      $y = MonthDate::boundYear($yr);
       if ($m == 1) {
         $m = 12;
         $y--;
@@ -52,8 +52,8 @@
     }
 
     public function followingMonth($mn,$yr) {
-      $m = $this->boundMonth($mn);
-      $y = $this->boundYear($yr);
+      $m = MonthDate::boundMonth($mn);
+      $y = MonthDate::boundYear($yr);
       if ($m == 12) {
         $m = 1;
         $y++;
@@ -67,13 +67,19 @@
       $list = array();
       $currentMonth = $startMonth;
       $currentYear = $startYear;
-      $endDate = $this->followingMonth($endMonth, $endYear);
+
+      $endDate = MonthDate::followingMonth($endMonth, $endYear);
+      $em = str_pad($endDate["month"],2,'0',STR_PAD_LEFT);
+      $endComp = "{$endDate['year']}{$em}";
+      $comp = "";
       do  {
         array_push($list, array("year" => $currentYear, "month" => $currentMonth));
-        $temp = $this->followingMonth($currentMonth, $currentYear);
+        $temp = MonthDate::followingMonth($currentMonth, $currentYear);
         $currentMonth = $temp["month"];
         $currentYear= $temp["year"];
-      } while ($currentYear != $endDate["year"] && $currentMonth != $endDate["month"]);
+        $cm = str_pad($currentMonth,2,'0',STR_PAD_LEFT);
+        $comp = "{$currentYear}{$cm}";
+      } while ($comp < $endComp);
 
       return $list;
     }

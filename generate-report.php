@@ -45,7 +45,7 @@
       if (array_key_exists ('endMonth', $_POST)) $params['endMonth'] = trim($_POST['endMonth']);
       if (array_key_exists ('endYear', $_POST)) $params['endYear'] = trim($_POST['endYear']);
     }
-
+    
     $report = new UsageReportGenerator($params, $config);
     // Format results
     $results = $report->getReport();
