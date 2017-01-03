@@ -24,8 +24,8 @@
     "mode" => null
   );
 
-  // Increase allowable execution timeout
-	set_time_limit( 20 );
+  // Increase allowable execution timeout -- 30 minutes
+	set_time_limit( 1800 );
 
   if (array_key_exists ("debug", $_GET)) $config->debug = trim($_GET["debug"]);
 

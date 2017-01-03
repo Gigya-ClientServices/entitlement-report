@@ -24,6 +24,9 @@ class GigyaUtils {
   }
 
   public function query($apiKey, $dc = 'us1', $query) {
+    // TODO: Replace this with actual rate limit checking code
+    // Temorary Execution throttling limits the number of calls to ~5 per second
+    usleep(200000);
     $method = "ids.search";
     $request = new GSRequest($apiKey, $this->userSecret, $method, null, true, $this->userKey);
     $request->setAPIDomain($dc . ".gigya.com");

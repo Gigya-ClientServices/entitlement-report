@@ -34,7 +34,7 @@ Site-by-site report for --
 3. Store data in arrays
 4. Format the data into a grid for easy consumption
 
-## Phase 2
+## ~~Phase 2~~
 
 ### Goal
 Add ability to pull a segmented monthly view of the data between certain dates (month/year pairs) which can be displayed as a graph or downloaded as a CSV
@@ -63,9 +63,14 @@ UI and Report generation must provide a mode to pull the segmented data and spec
 ## Phase 3
 
 ### Goal
-Perform database caching and retrieval of archived monthly information for report generation to minimize the number of REST API requests necessary for data that has already been retrieved.  
+Perform database caching and retrieval of archived monthly information for report generation to minimize the number of REST API requests necessary for data that has already been retrieved and eliminate overhead by dynamically creating and managing a high-rate limit appKey/Secret  
 
 ### Requirements
+ * Dynamically create AppKey/Secret to be used only for the duration of the job runtime
+ * 3 Cache Tables are necessary
+   * Data regarding the partner information -- Keyed to Partner ID
+   * Data regarding the site summary information -- Keyed to Site ID
+   * Monthy stats for a site -- Keyed to Site ID, month, year
  * Cached data must have an expiration limit
  * Cache should be able to be force expired through the report generation endpoint.
  * Current month should not be cached
@@ -73,9 +78,10 @@ Perform database caching and retrieval of archived monthly information for repor
 ## Phase 4
 
 ### Goal
-Real-time status updates during the report generation process
+Real-time status updates during the report generation process which will update the page
 
 ### Requirements
+* Websockets will be used to manage realtime "job" information provided by the generation tool.
 * Requests to the report will be generated using a UUID for the jobID.
 * Client interface will listen for updated only for the UUID
 * Updated status messages will be output dynamically into the "Waiting" loader
