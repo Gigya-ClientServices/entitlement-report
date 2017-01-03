@@ -8,6 +8,10 @@ body {
   padding: 0px;
 }
 
+.end-month, .start-month {
+  display: none;
+}
+
 div.overlay {
   background-color: #333;
   opacity: 0.8;
@@ -46,7 +50,7 @@ div.outer {
   padding: 10px;
   background-color: #fff !important;
   border: 1px solid #586e75;
-  border-radius: 5px;
+  border-radius: 3px;
 }
 
 div.header-global {
@@ -80,11 +84,17 @@ caption {
 
 div.main {
   border: 1px solid #586e75;
-  border-radius: 3px;
+  border-radius: 1px;
   background-color: #eef;
   padding-top: 5px;
   margin: 5px;
   box-shadow: 5px 5px 5px rgba(128,128,128,192);
+}
+
+div.replay {
+  background-color: #eef;
+  padding: 3px;
+  margin: 0px;
 }
 
 div.left{
@@ -103,7 +113,7 @@ div.right {
 div.bottom {
   clear: both;
   border: 1px solid #586e75;
-  border-radius: 3px;
+  border-radius: 1px;
   padding: 15px;
   margin: 5px;
   box-shadow: 5px 5px 5px rgba(128,128,128,128);
@@ -141,7 +151,7 @@ td.bits {
   margin: 20px 0;
   border: 1px solid #eee;
   border-left-width: 5px;
-  border-radius: 3px;
+  border-radius: 1px;
 }
 
 .bs-test {
@@ -160,7 +170,7 @@ td.bits {
 }
 
 .bs-callout code {
-  border-radius: 3px
+  border-radius: 1px
 }
 
 .bs-callout+.bs-callout {

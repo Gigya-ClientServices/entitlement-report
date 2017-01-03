@@ -1,16 +1,38 @@
+function pad(n, width, z) {
+  z = z || '0';
+  n = n + '';
+  return n.length >= width ? n : new Array(width - n.length + 1).join(z) + n;
+}
+
 var UsageReport = {
+  csvActivityData: [],
+  csvGrowthData: [],
+  partnerID: "",
+  startMonth: "",
+  startYear: "",
+  endMonth: "",
+  endYear: "",
+
   submitReport: function(input) {
     var w = $( window ).width();
     var h = $( window ).height();
 
     var r = $('#report');
     r.hide();
-    r.html('');
+
+    var e = $('#errors');
+    e.hide();
 
     var o = $('#overlay')
     o.width(w);
     o.height(h - 64);
     o.show();
+
+    UsageReport.partnerID = $('#partnerID').val();
+    UsageReport.startMonth = $('#startMonth').val();
+    UsageReport.startYear = $('#startYear').val();
+    UsageReport.endMonth = $('#endMonth').val();
+    UsageReport.endYear = $('#endYear').val();
 
     $.ajax(
       'generate-report.php',
@@ -20,18 +42,39 @@ var UsageReport = {
         data: {
           'partnerID': $('#partnerID').val(),
           'userKey': $('#userKey').val(),
-          'userSecret': $('#userSecret').val()
+          'userSecret': $('#userSecret').val(),
+          'includeSegments': $('#includeSegments').is(':checked'),
+          'startMonth': $('#startMonth').val(),
+          'startYear': $('#startYear').val(),
+          'endMonth': $('#endMonth').val(),
+          'endYear': $('#endYear').val()
         },
         success: function(data, status, e) {
           //alert('success');
           var o = $('#overlay')
           o.hide();
-          var r = $('#report');
-          r.show();
           if (data.errCode == 0) {
-            r.html(UsageReport.formatResults(data));
+            var r = $('#report');
+            var h = $('#heading');
+            var overviewTab = $('#overview');
+            var dataTab = $('#data');
+            h.html(UsageReport.formatHeader(data));
+            overviewTab.html(UsageReport.formatResults(data));
+            if ($('#includeSegments').is(':checked')) {
+              $('#segmentTab').show();
+              UsageReport.formatChartData(data);
+              UsageReport.csvActivityData = data.csvData.activity;
+              UsageReport.csvGrowthData = data.csvData.growth;
+            } else {
+              $('#segmentTab').hide();
+            }
+            r.show();
+            $('.main').hide();
+            $('#replay').show();
           } else {
-            r.html(UsageReport.formatErrors(data.errors));
+            var e = $('#errors');
+            e.show();
+            e.html(UsageReport.formatErrors(data.errors));
           }
         },
         error: function(e, status, errorMessage) {
@@ -56,13 +99,18 @@ var UsageReport = {
       return outString;
   },
 
+  formatHeader: function(results) {
+    var outString =
+      "<h3>Report for '" + results.partner.companyName + "' (" + results.partner.partnerID + ") &nbsp;" +
+      ((results.partner.isEnabled)?"<span class='label label-success'>Enabled</span>":"<span class='label label-danger'>Disabled</span>") +
+      ((results.partner.isTrial)?" &nbsp;<span class='label label-info'>Trial</span>":"<span class='label label-warning'>Paid</span>") +
+      "</h3>";
+    return outString;
+  },
+
   formatResults: function(results) {
     var outString =
-                "<div class='row' style='margin: 0px 30px 0px 10px;''>" +
-                "<h3>Report for '" + results.partner.companyName + "' (" + results.partner.partnerID + ") &nbsp;" +
-                ((results.partner.isEnabled)?"<span class='label label-success'>Enabled</span>":"<span class='label label-danger'>Disabled</span>") +
-                ((results.partner.isTrial)?" &nbsp;<span class='label label-info'>Trial Account</span>":"") +
-                "</h3>" +
+                "<div class='row' style='margin: 0px 30px 0px 10px;'>" +
                 "<h4>Enabled Services</h4>" +
                 "<table class='col-md-12 table-bordered'>" +
                 "<thead>" +
@@ -116,7 +164,7 @@ var UsageReport = {
         site = results.sites[siteID];
         if (!site.isChild) {
           outString +=
-                "<tr border='1px'>" +
+                "<tr>" +
                 "<td>" + site.id + "</td>" +
                 "<td>" + site.apiKey +"</td>" +
                 "<td>" + UsageReport.formatTestImage(site.hasDS,'img/pass.png','DS Enabled') + "</td>";
@@ -140,7 +188,7 @@ var UsageReport = {
 
       // Summary Info
       outString +=
-        "<tr border='1px' style='background: #CCC;'>" +
+        "<tr style='background: #CCC;'>" +
         "<td colspan='8'><b>Summary</b></td>" +
         "<td>" + results.summary.userCount + "</td>" +
         "<td>" + results.summary.lastLogin + "</td>" +
@@ -153,11 +201,160 @@ var UsageReport = {
   },
 
   formatErrors: function(errors) {
-    var outString = ""
+    var outString = "";
     for (errorIndex in errors) {
         error = errors[errorIndex];
-    		outString += '<div class="bs-callout bs-callout-danger"><h4>' + error.message + '</h4><pre>' + error.log + '</pre></div>'
+    		outString += '<div class="bs-callout bs-callout-danger"><h4>' + error.message + '</h4><pre>' + error.extended + '</pre></div>'
     }
     return outString;
+  },
+
+  formatChartData: function(results) {
+    var lineChartOptions = {
+      responsive: false,
+      maintainAspectRatio: false,
+      bezierCurve: false,
+      lineTension: 0,
+      tension:0 /*,
+      scales: {
+        yAxes: [{
+          display: true,
+          ticks: {
+            suggestedMin: 0    // minimum will be 0, unless there is a lower value.
+          }
+        }]
+      }*/
+    };
+
+    var growthCtx = $('#growthChart');
+    var activityCtx = $('#activityChart');
+    var growthChart = new Chart(growthCtx, {
+      type: 'line',
+      tension: 0,
+      lineTension: 0,
+      bezierCurve: false,
+      data: {
+        labels: results.summary.segments.labels,
+        datasets: [{
+          label: '# of Created Users',
+          data: results.summary.segments.data,
+          backgroundColor: [
+            'rgba(255, 99, 132, 0.2)',
+            'rgba(54, 162, 235, 0.2)',
+            'rgba(255, 206, 86, 0.2)',
+            'rgba(75, 192, 192, 0.2)',
+            'rgba(153, 102, 255, 0.2)',
+            'rgba(255, 159, 64, 0.2)'
+          ],
+          borderColor: [
+            'rgba(255,99,132,1)',
+            'rgba(54, 162, 235, 1)',
+            'rgba(255, 206, 86, 1)',
+            'rgba(75, 192, 192, 1)',
+            'rgba(153, 102, 255, 1)',
+            'rgba(255, 159, 64, 1)'
+          ],
+          borderWidth: 1
+        }]
+      },
+      options: lineChartOptions
+    });
+    var activityChart = new Chart(activityCtx, {
+      type: 'line',
+      tension: 0,
+      lineTension: 0,
+      bezierCurve: false,
+      data: {
+        labels: results.summary.segments.labels,
+        datasets: [{
+          label: '# of Created Users',
+          data: results.summary.segments.deltas,
+          backgroundColor: [
+            'rgba(54, 162, 235, 0.2)',
+            'rgba(255, 99, 132, 0.2)',
+            'rgba(255, 206, 86, 0.2)',
+            'rgba(75, 192, 192, 0.2)',
+            'rgba(153, 102, 255, 0.2)',
+            'rgba(255, 159, 64, 0.2)'
+          ],
+          borderColor: [
+            'rgba(54, 162, 235, 1)',
+            'rgba(255, 99, 132,1)',
+            'rgba(255, 206, 86, 1)',
+            'rgba(75, 192, 192, 1)',
+            'rgba(153, 102, 255, 1)',
+            'rgba(255, 159, 64, 1)'
+          ],
+          borderWidth: 1
+        }]
+      },
+      options: lineChartOptions
+    });
+  },
+
+  performCSVDownload: function(data, filename) {
+    // Add a link to download if supported
+    if ("download" in document.createElement("a")) {
+      var link = $("<a target='_blank' href='data:text/csv;charset=utf-8,%EF%BB%BF" + encodeURI(data.join("\n")) + "' download='" + filename + "'></a>");
+      link.appendTo("body");
+      link[0].click();
+      // Remove the temporary link after 50 milliseconds
+      setTimeout(function () {
+        link.remove();
+      }, 50);
+      return;
+    }
+    // Otherwise add an IFRAME to force teh download
+    var txt = $("<textarea cols='65536'></textarea>").get(0);
+    txt.innerHTML = data.join("\n");
+    var frame = $("<iframe src='text/csv;charset=utf-8' style='display:none'></iframe>").appendTo("body").get(0);
+    frame.contentWindow.document.open("text/csv;charset=utf-8", "replace");
+    frame.contentWindow.document.write(txt.value);
+    frame.contentWindow.document.close();
+    frame.contentWindow.document.execCommand("SaveAs", true, filename);
+    // Remove the temporary iframe after 50 milliseconds
+    setTimeout(function () {
+      $(frame).remove();
+      $(txt).remove();
+    }, 50);
+  },
+
+  downloadCSVData: function(dataset) {
+    var filename = dataset + "_" +
+               UsageReport.partnerID + "_" +
+               UsageReport.startYear + pad(UsageReport.startMonth,2) + "-" +
+               UsageReport.endYear + pad(UsageReport.endMonth,2) + ".csv";
+    switch(dataset) {
+      case "growth":
+        UsageReport.performCSVDownload(UsageReport.csvGrowthData, filename);
+      break;
+      case "activity":
+        UsageReport.performCSVDownload(UsageReport.csvActivityData, filename);
+      break;
+    }
+  },
+
+  updateSettings: function(settings) {
+    if (settings) {
+      $('.start-month').show();
+      $('.start-year').show();
+      $('.end-month').show();
+      $('.end-year').show();
+    } else {
+      $('.start-month').hide();
+      $('.start-year').hide();
+      $('.end-month').hide();
+      $('.end-year').hide();
+    }
+  },
+
+  includeSegmentsChanged: function(input) {
+    var c = input.checked;
+    UsageReport.updateSettings(c);
+  },
+
+  showMain: function() {
+    $('.main').show();
+    $('#replay').hide();
   }
 }

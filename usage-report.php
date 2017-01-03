@@ -1,7 +1,5 @@
 <?php
-  require_once('GSSDK.php');
-  require_once('conf/settings.php');
-
+  $config = include('conf/settings.php');
   $title = "Usage Report";
   $debugMode = false;
   $proxyMode = false;
@@ -12,11 +10,30 @@
   $partnerID = "";
 	$userKey = "";
 	$userSecret = "";
+  $includeSegments = false;
+  $startMonth = null;
+  $startYear = null;
+  $endMonth = null;
+  $endYear = null;
 
 	$debug = array();
 	$errors = array();
 	$summaries = array();
   $results = "";
+
+  $years = array(2008,2009,2010,2011,2012,2013,2014,2015,2016,2017,2018);
+  $months = array(1 => "01 - January",
+                  2 => "02 - February",
+                  3 => "03 - March",
+                  4 => "04 - April",
+                  5 => "05 - May",
+                  6 => "06 - June",
+                  7 => "07 - July",
+                  8 => "08 - August",
+                  9 => "09 - September",
+                  10 => "10 - October",
+                  11 => "11 - November",
+                  12 => "12 - December");
 
   $sites = array();
 
@@ -37,6 +54,12 @@
     }
   }
 
+  date_default_timezone_set('UTC');
+  $startMonth = intval(date('m'));
+  $startYear = intval(date('Y'));
+  $endMonth = intval(date('m'));
+  $endYear = intval(date('Y'));
+
   checkRedirection();
 ?>
 
@@ -52,6 +75,9 @@
 
 		<!-- Latest compiled and minified CSS -->
 		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+
+    <!-- Latest compiled and minified Javascript for Chart.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.bundle.min.js"></script>
 
 		<!-- Optional theme -->
 		<!--<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css">-->
@@ -97,13 +123,22 @@
 	<div id="outer" class="outer">
 		<div id="container">
 		<div id="outertop">
+      <div id="replay" class="replay" style="display: none;">
+        <button type="button" class="btn btn-primary btn-xs" onclick="UsageReport.showMain();">Generate Another Report</button>
+      </div>
 			<form action="" method="post" class="form-horizontal" autocomplete="off">
 			<div class="main">
 				<div class="left">
+          <div class="form-group">
+					</div>
 					<div class="form-group">
 						<label class="col-sm-2 control-label">Partner ID</label>
-						<div class="col-sm-1">
+						<div class="col-sm-2">
 							<input type="text" id="partnerID" name="partnerID" value="<?=$partnerID?>" class="form-control">
+						</div>
+            <label class="col-sm-2 control-label">Include Monthly Segment Data</label>
+            <div class="col-sm-2">
+							<input type="checkbox" id="includeSegments" name="includeSegments" <?=($includeSegments)?"checked":""?> class="checkbox-inline" style="margin-top: 10px !important;" onchange="UsageReport.includeSegmentsChanged(this);">
 						</div>
 					</div>
 					<div class="form-group">
@@ -111,11 +146,45 @@
 						<div class="col-sm-2">
 							<input type="text" id="userKey" name="userKey" value="<?=$userKey?>" class="form-control" autocomplete="nope">
 						</div>
+            <label class="start-month col-sm-1 control-label">Start Month</label>
+						<div class="start-month col-sm-3 form-inline">
+							<select id="startMonth" name="startMonth" class="form-control">
+                <?php
+                foreach($months as $key => $value) {
+                  echo "<option value='{$key}' " . (($startMonth == $key)?"selected":"") . " >{$value}</option>";
+                }
+                ?>
+              </select>
+							<select id="startYear" name="startYear" class="form-control">
+                <?php
+                foreach($years as $yr) {
+                  echo "<option value='{$yr}' " . (($startYear == $yr)?"selected":"") . " >{$yr}</option>";
+                }
+                ?>
+              </select>
+						</div>
 					</div>
           <div class="form-group">
 						<label class="col-sm-2 control-label">User Secret</label>
 						<div class="col-sm-2">
 							<input type="password" id="userSecret" name="userSecret" value="<?=$userSecret?>" class="form-control" autocomplete="new-password">
+						</div>
+            <label class="end-month col-sm-1 control-label">End Month</label>
+						<div class="end-month col-sm-3 form-inline">
+							<select id="endMonth" name="endMonth" class="form-control">
+                <?php
+                foreach($months as $key => $value) {
+                  echo "<option value='{$key}' " . (($endMonth == $key)?"selected":"") . " >{$value}</option>";
+                }
+                ?>
+              </select>
+							<select id="endYear" name="endYear" class="form-control">
+                <?php
+                foreach($years as $yr) {
+                  echo "<option value='{$yr}' " . (($endYear == $yr)?"selected":"") . " >{$yr}</option>";
+                }
+                ?>
+              </select>
 						</div>
 					</div>
 					<div class="form-group">
@@ -126,8 +195,44 @@
 					</div>
 				</div>
 			</div>
-			<div id="report" class="report bs-callout bs-callout-primary bottom">
+      <div id="report" class="report bs-callout bs-callout-primary bottom">
+        <div id="heading" class="row" style="margin: 0px 20px 0px 10px;">...</div>
+        <!-- Nav tabs -->
+        <ul class="nav nav-tabs" role="tablist">
+          <li role="presentation" class="active"><a href="#overview" aria-controls="overview" role="tab" data-toggle="tab">Overview</a></li>
+          <li role="presentation" id="segmentTab"><a href="#data" aria-controls="data" role="tab" data-toggle="tab">Segment Data</a></li>
+        </ul>
+        <!-- Tab panes -->
+        <div class="tab-content" style="padding: 10px;">
+          <div role="tabpanel" class="tab-pane fade in active" id="overview">...</div>
+          <div role="tabpanel" class="tab-pane fade" id="data">
+            <ul class="nav nav-tabs" role="tablist">
+              <li role="presentation" class="active"><a href="#growth" aria-controls="growth" role="tab" data-toggle="tab">Growth</a></li>
+              <li role="presentation"><a href="#activity" aria-controls="activity" role="tab" data-toggle="tab">Activity</a></li>
+            </ul>
+            <div class="tab-content" style="padding: 10px;">
+              <div class="row tab-pane fade in active" role="tabpanel" id="growth">
+                <div class="col-md-12">
+                  <button type="button" class="btn btn-primary" onclick="UsageReport.downloadCSVData('growth');">Download Growth CSV Data</button>
+                </div>
+                <div class="col-md-12">
+                  <canvas id="growthChart" width="1000" height="400"></canvas>
+                </div>
+              </div>
+              <div class="row tab-pane fade" role="tabpanel" id="activity">
+                <div role="col-md-12">
+                  <button type="button" class="btn btn-primary" onclick="UsageReport.downloadCSVData('activity');">Download Activity CSV Data</button>
+                </div>
+                <div role="col-md-12">
+                  <canvas id="activityChart" width="1000" height="400"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 			</div>
+      <div id="errors" class="report bs-callout bs-callout-primary bottom">
+      </div>
 			</form>
 		</div>
 	</div>
