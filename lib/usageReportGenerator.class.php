@@ -24,6 +24,8 @@ class UsageReportGenerator {
   private $partnerInfo = array();
   private $sites = array();
   private $summaries = array();
+  private $growthCSV = array();
+  private $activityCSV = array();
 
   public function __construct($params, $config) {
     $this->hasRun = false;
@@ -318,6 +320,7 @@ class UsageReportGenerator {
     $lastCreated = '';
     $segmentLabels = array();
     $segmentData = array();
+    $segmentDeltas = array();
     foreach ($this->sites as $site) {
       $totalUsers = $totalUsers + $site['userCount'];
       if ($site['lastLogin'] > $lastLogin) $lastLogin = $site['lastLogin'];
@@ -325,27 +328,48 @@ class UsageReportGenerator {
       if ($this->includeSegments) {
         for ($i = 0; $i < count($site['segments']['labels']); $i++) {
           if ($segmentLabels[$i] === NULL) $segmentLabels[$i] = $site['segments']['labels'][$i];
-          if ($segmentData[$i] === NULL)
-          {
-            $segmentData[$i] = $site['segments']['data'][$i];
-          }
-          else {
-            $segmentData[$i] += $site['segments']['data'][$i];
-          }
+          if ($segmentData[$i] === NULL) $segmentData[$i] = 0;
+          if ($segmentDeltas[$i] === NULL) $segmentDeltas[$i] = 0;
+          $segmentData[$i] += $site['segments']['data'][$i];
+          $segmentDeltas[$i] += $site['segments']['deltas'][$i];
         }
       }
     }
+
     $this->summaries['userCount'] = $totalUsers;
     $this->summaries['lastLogin'] = $lastLogin;
     $this->summaries['lastCreated'] = $lastCreated;
     if ($this->includeSegments) {
       $this->summaries['segments'] = array(
         'labels' => $segmentLabels,
-        'data' => $segmentData
+        'data' => $segmentData,
+        'deltas' => $segmentDeltas
       );
+
+      // Add CSV Data
+      array_push($this->growthCSV, "Period,Summaries");
+      array_push($this->activityCSV, "Period,Summaries");
+      for ($i = 0; $i < count($this->summaries['segments']['labels']); $i++) {
+        $label = $this->summaries['segments']['labels'][$i];
+        array_push($this->growthCSV, $label . "," . $this->summaries['segments']['data'][$i]);
+        array_push($this->activityCSV, $label . "," . $this->summaries['segments']['deltas'][$i]);
+      }
+      foreach ($this->sites as $site) {
+        if (!$site['isChild'] && $site['hasIdS'] ) {
+          $this->growthCSV[0] .= "," . $site['id'];
+          $this->activityCSV[0] .= "," . $site['id'];
+          for ($i = 0; $i < count($this->summaries['segments']['labels']); $i++) {
+            $data = $site['segments']['data'][$i];
+            $data = ($data==NULL?0:$data);
+            $delta = $site['segments']['deltas'][$i];
+            $delta = ($delta==NULL?0:$delta);
+            $this->growthCSV[$i+1] .= "," . $data;
+            $this->activityCSV[$i+1] .= "," . $delta;
+          }
+        }
+      }
     }
   }
-
 
   /**
   	* gatherPartnerInformation
@@ -405,7 +429,9 @@ class UsageReportGenerator {
           $this->sites[$id]['segments'] = array (
             'labels' => array(),
             'data' => array(),
+            'deltas' => array()
           );
+
           foreach ($datesArray as $dates) {
             $m = $dates['month'];
             $y = $dates['year'];
@@ -417,6 +443,15 @@ class UsageReportGenerator {
               array_push($this->sites[$id]['segments']['data'], $monthCount);
             }
           }
+          $deltas = array();
+          // Calculate deltas
+          for ($i = 1; $i < count($this->sites[$id]['segments']['labels']); $i++) {
+            $deltas[$i-1] = $this->sites[$id]['segments']['data'][$i] - $this->sites[$id]['segments']['data'][$i-1];
+          }
+          $this->sites[$id]['segments']['deltas'] = $deltas;
+          // Remove first elements of array after calculating deltas
+          array_shift($this->sites[$id]['segments']['labels']);
+          array_shift($this->sites[$id]['segments']['data']);
         }
       }
     }
@@ -432,7 +467,7 @@ class UsageReportGenerator {
     * formatReport
     */
   private function formatReport() {
-    $this->logger->addLog('CalculateSummary', "", LogLevels::debug);
+    $this->logger->addLog('Format Report', "", LogLevels::debug);
     $output = array();
     $errors = $this->logger->getErrorLog();
     $debug = $this->logger->getDebugLog();
@@ -442,9 +477,16 @@ class UsageReportGenerator {
       $output['errors'] = $errors;
     } else {
       $output['errCode'] = 0;
+      $output['hasSegments'] = $this->includeSegments;
       $output['partner'] = $this->partnerInfo;
       $output['sites'] = $this->sites;
       $output['summary'] = $this->summaries;
+      if ($this->includeSegments) {
+        $output['csvData'] = (object) array(
+          'growth' => $this->growthCSV,
+          'activity' => $this->activityCSV
+        );
+      }
     }
     if (count($debug) > 0 && $this->config->debug) {
       $output['hasDebug'] = true;

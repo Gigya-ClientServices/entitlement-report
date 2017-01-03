@@ -55,6 +55,8 @@
   }
 
   date_default_timezone_set('UTC');
+  $startMonth = intval(date('m'));
+  $startYear = intval(date('Y'));
   $endMonth = intval(date('m'));
   $endYear = intval(date('Y'));
 
@@ -73,6 +75,9 @@
 
 		<!-- Latest compiled and minified CSS -->
 		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+
+    <!-- Latest compiled and minified Javascript for Chart.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.4.0/Chart.bundle.min.js"></script>
 
 		<!-- Optional theme -->
 		<!--<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css">-->
@@ -118,6 +123,9 @@
 	<div id="outer" class="outer">
 		<div id="container">
 		<div id="outertop">
+      <div id="replay" class="replay" style="display: none;">
+        <button type="button" class="btn btn-primary btn-xs" onclick="UsageReport.showMain();">Generate Another Report</button>
+      </div>
 			<form action="" method="post" class="form-horizontal" autocomplete="off">
 			<div class="main">
 				<div class="left">
@@ -128,7 +136,7 @@
 						<div class="col-sm-2">
 							<input type="text" id="partnerID" name="partnerID" value="<?=$partnerID?>" class="form-control">
 						</div>
-            <label class="col-sm-2 control-label">Include Segments</label>
+            <label class="col-sm-2 control-label">Include Monthly Segment Data</label>
             <div class="col-sm-2">
 							<input type="checkbox" id="includeSegments" name="includeSegments" <?=($includeSegments)?"checked":""?> class="checkbox-inline" style="margin-top: 10px !important;" onchange="UsageReport.includeSegmentsChanged(this);">
 						</div>
@@ -187,8 +195,44 @@
 					</div>
 				</div>
 			</div>
-			<div id="report" class="report bs-callout bs-callout-primary bottom">
+      <div id="report" class="report bs-callout bs-callout-primary bottom">
+        <div id="heading" class="row" style="margin: 0px 20px 0px 10px;">...</div>
+        <!-- Nav tabs -->
+        <ul class="nav nav-tabs" role="tablist">
+          <li role="presentation" class="active"><a href="#overview" aria-controls="overview" role="tab" data-toggle="tab">Overview</a></li>
+          <li role="presentation" id="segmentTab"><a href="#data" aria-controls="data" role="tab" data-toggle="tab">Segment Data</a></li>
+        </ul>
+        <!-- Tab panes -->
+        <div class="tab-content" style="padding: 10px;">
+          <div role="tabpanel" class="tab-pane fade in active" id="overview">...</div>
+          <div role="tabpanel" class="tab-pane fade" id="data">
+            <ul class="nav nav-tabs" role="tablist">
+              <li role="presentation" class="active"><a href="#growth" aria-controls="growth" role="tab" data-toggle="tab">Growth</a></li>
+              <li role="presentation"><a href="#activity" aria-controls="activity" role="tab" data-toggle="tab">Activity</a></li>
+            </ul>
+            <div class="tab-content" style="padding: 10px;">
+              <div class="row tab-pane fade in active" role="tabpanel" id="growth">
+                <div class="col-md-12">
+                  <button type="button" class="btn btn-primary" onclick="UsageReport.downloadCSVData('growth');">Download Growth CSV Data</button>
+                </div>
+                <div class="col-md-12">
+                  <canvas id="growthChart" width="1000" height="400"></canvas>
+                </div>
+              </div>
+              <div class="row tab-pane fade" role="tabpanel" id="activity">
+                <div role="col-md-12">
+                  <button type="button" class="btn btn-primary" onclick="UsageReport.downloadCSVData('activity');">Download Activity CSV Data</button>
+                </div>
+                <div role="col-md-12">
+                  <canvas id="activityChart" width="1000" height="400"></canvas>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 			</div>
+      <div id="errors" class="report bs-callout bs-callout-primary bottom">
+      </div>
 			</form>
 		</div>
 	</div>

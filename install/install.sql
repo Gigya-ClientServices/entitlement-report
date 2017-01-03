@@ -7,8 +7,6 @@ CREATE TABLE IF NOT EXISTS `usage` (
   month TINYINT UNSIGNED NOT NULL,
   year SMALLINT UNSIGNED NOT NULL,
   count INT UNSIGNED ZEROFILL NOT NULL,
-  last_login VARCHAR(22) NOT NULL,
-  last_create VARCHAR(22) NOT NULL,
   last_cached_date TIMESTAMP NOT NULL DEFAULT NOW(),
   primary key (site_id, month, year)
 );

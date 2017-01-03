@@ -39,13 +39,13 @@
       if (array_key_exists ('partnerID', $_POST)) $params['partnerID'] = trim($_POST['partnerID']);
       if (array_key_exists ('userKey', $_POST)) $params['userKey'] = trim($_POST['userKey']);
       if (array_key_exists ('userSecret', $_POST)) $params['userSecret'] = trim($_POST['userSecret']);
-      if (array_key_exists ('includeSegments', $_POST)) $params['includeSegments'] = trim($_POST['includeSegments']);
+      if (array_key_exists ('includeSegments', $_POST)) $params['includeSegments'] = json_decode(trim($_POST['includeSegments']));
       if (array_key_exists ('startMonth', $_POST)) $params['startMonth'] = trim($_POST['startMonth']);
       if (array_key_exists ('startYear', $_POST)) $params['startYear'] = trim($_POST['startYear']);
       if (array_key_exists ('endMonth', $_POST)) $params['endMonth'] = trim($_POST['endMonth']);
       if (array_key_exists ('endYear', $_POST)) $params['endYear'] = trim($_POST['endYear']);
     }
-    
+
     $report = new UsageReportGenerator($params, $config);
     // Format results
     $results = $report->getReport();
