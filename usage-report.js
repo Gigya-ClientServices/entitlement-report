@@ -102,8 +102,8 @@ var UsageReport = {
   formatHeader: function(results) {
     var outString =
       "<h3>Report for '" + results.partner.companyName + "' (" + results.partner.partnerID + ") &nbsp;" +
-      ((results.partner.isEnabled)?"<span class='label label-success'>Enabled</span>":"<span class='label label-danger'>Disabled</span>") +
-      ((results.partner.isTrial)?" &nbsp;<span class='label label-info'>Trial</span>":"<span class='label label-warning'>Paid</span>") +
+      ((results.partner.isEnabled)?"<span class='label label-success'>Enabled</span>":"<span class='label label-danger'>Disabled</span>") + "&nbsp; " +
+      ((results.partner.isTrial)?"<span class='label label-info'>Trial</span>":"<span class='label label-warning'>Paid</span>") +
       "</h3>";
     return outString;
   },
