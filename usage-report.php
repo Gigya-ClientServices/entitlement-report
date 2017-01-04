@@ -121,11 +121,8 @@
     </div>
   </div>
 	<div id="outer" class="outer">
-		<div id="container">
+		<div id="container" class="outer-container">
 		<div id="outertop">
-      <div id="replay" class="replay" style="display: none;">
-        <button type="button" class="btn btn-primary btn-xs" onclick="UsageReport.showMain();">Generate Another Report</button>
-      </div>
 			<form action="" method="post" class="form-horizontal" autocomplete="off">
 			<div class="main">
 				<div class="left">
@@ -196,35 +193,42 @@
 				</div>
 			</div>
       <div id="report" class="report bs-callout bs-callout-primary bottom">
-        <div id="heading" class="row" style="margin: 0px 20px 0px 10px;">...</div>
+        <div class="report-heading-row">
+          <div id="heading" class="report-heading">...</div>
+          <div id="replay" class="replay pull-right" >
+            <button type="button" class="btn btn-primary btn-md" onclick="UsageReport.showMain();">Generate Another Report</button>
+          </div>
+        </div>
         <!-- Nav tabs -->
-        <ul class="nav nav-tabs" role="tablist">
-          <li role="presentation" class="active"><a href="#overview" aria-controls="overview" role="tab" data-toggle="tab">Overview</a></li>
-          <li role="presentation" id="segmentTab"><a href="#data" aria-controls="data" role="tab" data-toggle="tab">Segment Data</a></li>
-        </ul>
+        <div class="report-contents-row">
+          <ul class="nav nav-tabs" role="tablist">
+            <li role="presentation" class="active"><a href="#overview" aria-controls="overview" role="tab" data-toggle="tab">Overview</a></li>
+            <li role="presentation" id="segmentTab"><a href="#data" aria-controls="data" role="tab" data-toggle="tab">Segment Data</a></li>
+          </ul>
         <!-- Tab panes -->
-        <div class="tab-content" style="padding: 10px;">
-          <div role="tabpanel" class="tab-pane fade in active" id="overview">...</div>
-          <div role="tabpanel" class="tab-pane fade" id="data">
-            <ul class="nav nav-tabs" role="tablist">
-              <li role="presentation" class="active"><a href="#growth" aria-controls="growth" role="tab" data-toggle="tab">Growth</a></li>
-              <li role="presentation"><a href="#activity" aria-controls="activity" role="tab" data-toggle="tab">Activity</a></li>
-            </ul>
-            <div class="tab-content" style="padding: 10px;">
-              <div class="row tab-pane fade in active" role="tabpanel" id="growth">
-                <div class="col-md-12">
-                  <button type="button" class="btn btn-primary" onclick="UsageReport.downloadCSVData('growth');">Download Growth CSV Data</button>
+          <div class="tab-content" style="padding: 10px;">
+            <div role="tabpanel" class="tab-pane fade in active" id="overview">...</div>
+            <div role="tabpanel" class="tab-pane fade" id="data">
+              <ul class="nav nav-tabs" role="tablist">
+                <li role="presentation" class="active"><a href="#growth" aria-controls="growth" role="tab" data-toggle="tab">Growth</a></li>
+                <li role="presentation"><a href="#activity" aria-controls="activity" role="tab" data-toggle="tab">Activity</a></li>
+              </ul>
+              <div class="tab-content" style="padding: 10px;">
+                <div class="row tab-pane fade in active" role="tabpanel" id="growth">
+                  <div class="col-md-12">
+                    <button type="button" class="btn btn-primary" onclick="UsageReport.downloadCSVData('growth');">Download Growth CSV Data</button>
+                  </div>
+                  <div class="col-md-12">
+                    <canvas id="growthChart" width="1000" height="400"></canvas>
+                  </div>
                 </div>
-                <div class="col-md-12">
-                  <canvas id="growthChart" width="1000" height="400"></canvas>
-                </div>
-              </div>
-              <div class="row tab-pane fade" role="tabpanel" id="activity">
-                <div role="col-md-12">
-                  <button type="button" class="btn btn-primary" onclick="UsageReport.downloadCSVData('activity');">Download Activity CSV Data</button>
-                </div>
-                <div role="col-md-12">
-                  <canvas id="activityChart" width="1000" height="400"></canvas>
+                <div class="row tab-pane fade" role="tabpanel" id="activity">
+                  <div role="col-md-12">
+                    <button type="button" class="btn btn-primary" onclick="UsageReport.downloadCSVData('activity');">Download Activity CSV Data</button>
+                  </div>
+                  <div role="col-md-12">
+                    <canvas id="activityChart" width="1000" height="400"></canvas>
+                  </div>
                 </div>
               </div>
             </div>
