@@ -437,7 +437,7 @@ class UsageReportGenerator {
             $y = $dates['year'];
 
             $monthCount = $this->retrieveUserCountsForMonth($apiKey, $dc, $id, $m, $y);
-            if ($monthCount != null) {
+            if ($monthCount !== NULL) {
               $zpm = str_pad($m,2,'0',STR_PAD_LEFT);
               array_push($this->sites[$id]['segments']['labels'], "{$y}-{$zpm}");
               array_push($this->sites[$id]['segments']['data'], $monthCount);
@@ -512,16 +512,16 @@ class UsageReportGenerator {
     }
 
     if ($this->includeSegments == true) {
-      if ($this->startMonth == null) {
+      if ($this->startMonth === NULL) {
         array_push($missingFields, "Start Month");
       }
-      if ($this->startYear == null) {
+      if ($this->startYear === NULL) {
         array_push($missingFields, "Start Year");
       }
-      if ($this->endMonth == null) {
+      if ($this->endMonth === NULL) {
         array_push($missingFields, "End Month");
       }
-      if ($this->endYear == null) {
+      if ($this->endYear === NULL) {
         array_push($missingFields, "End Year");
       }
 
