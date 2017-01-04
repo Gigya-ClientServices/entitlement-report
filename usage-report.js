@@ -213,6 +213,7 @@ var UsageReport = {
     var lineChartOptions = {
       responsive: false,
       maintainAspectRatio: false,
+      tooltipTemplate: "<%%= value %>",
       bezierCurve: false,
       lineTension: 0,
       tension:0 /*,
