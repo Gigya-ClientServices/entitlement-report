@@ -10,6 +10,7 @@
     ),
     "logging" => true,
     "debug" => false,
+    "useThrottle" => true,
     "certFile" => "cert/cacert.pem",
     "proxy" => (object) array (
       "enabled" => false,
