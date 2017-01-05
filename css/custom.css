@@ -8,6 +8,11 @@ body {
   padding: 0px;
 }
 
+caption {
+  color: #073642;
+  font-weight: 900;
+}
+
 .end-month, .start-month {
   display: none;
 }
@@ -82,11 +87,6 @@ div.outer-container {
   margin: 0px;
 }
 
-caption {
-  color: #073642;
-  font-weight: 900;
-}
-
 div.main {
   border: 1px solid #586e75;
   border-radius: 1px;
@@ -117,8 +117,8 @@ div.bottom {
 }
 
 .replay {
-  padding: 3px;
-  margin: 0px;
+  margin-top: 20px;
+  /* padding: 3px; */
   display: none;
   text-align:right;
   float:right;
@@ -131,14 +131,19 @@ div.bottom {
 }
 
 .report-heading-row, .report-contents-row {
-  width: 100%;
+  margin: 0px 10px 20px 10px;
+  /* width: 100%; */
   clear: both;
 }
 
 .report-heading {
-  margin-left: 10px;
+  height: 56px;
   clear: both;
   float: left;
+}
+
+.report-contents-tabs, .report-data-tabs {
+  padding: 5px 0px 0px 0px;
 }
 
 .report table {
@@ -148,6 +153,12 @@ div.bottom {
 .report td, .report th {
   padding: 2px;
   /* border: 1px solid #000 !important; */
+}
+
+.data-canvas {
+  width: 97.5vw !important;
+  height: auto !important;
+  display: block;
 }
 
 td.algo {

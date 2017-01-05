@@ -206,28 +206,28 @@
             <li role="presentation" id="segmentTab"><a href="#data" aria-controls="data" role="tab" data-toggle="tab">Segment Data</a></li>
           </ul>
         <!-- Tab panes -->
-          <div class="tab-content" style="padding: 10px;">
+          <div class="report-contents-tabs tab-content">
             <div role="tabpanel" class="tab-pane fade in active" id="overview">...</div>
             <div role="tabpanel" class="tab-pane fade" id="data">
               <ul class="nav nav-tabs" role="tablist">
                 <li role="presentation" class="active"><a href="#growth" aria-controls="growth" role="tab" data-toggle="tab">Growth</a></li>
                 <li role="presentation"><a href="#activity" aria-controls="activity" role="tab" data-toggle="tab">Activity</a></li>
               </ul>
-              <div class="tab-content" style="padding: 10px;">
+              <div class="report-data-tabs tab-content">
                 <div class="row tab-pane fade in active" role="tabpanel" id="growth">
                   <div class="col-md-12">
                     <button type="button" class="btn btn-primary" onclick="UsageReport.downloadCSVData('growth');">Download Growth CSV Data</button>
                   </div>
                   <div class="col-md-12">
-                    <canvas id="growthChart" width="1000" height="400"></canvas>
+                    <canvas id="growthChart" width="2000" height="600" class="data-canvas"></canvas>
                   </div>
                 </div>
-                <div class="row tab-pane fade" role="tabpanel" id="activity">
+                <div class="tab-pane fade" role="tabpanel" id="activity">
                   <div role="col-md-12">
                     <button type="button" class="btn btn-primary" onclick="UsageReport.downloadCSVData('activity');">Download Activity CSV Data</button>
                   </div>
                   <div role="col-md-12">
-                    <canvas id="activityChart" width="1000" height="400"></canvas>
+                    <canvas id="activityChart" width="2000" height="600" class="data-canvas"></canvas>
                   </div>
                 </div>
               </div>

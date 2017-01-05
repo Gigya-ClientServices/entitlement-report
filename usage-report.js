@@ -212,11 +212,15 @@ var UsageReport = {
   formatChartData: function(results) {
     var lineChartOptions = {
       responsive: false,
-      maintainAspectRatio: false,
+      maintainAspectRatio: true,
       tooltipTemplate: "<%%= value %>",
       bezierCurve: false,
       lineTension: 0,
-      tension:0 /*,
+      tension:0,
+      tooltips: {
+        enabled: true
+      }
+       /*,
       scales: {
         yAxes: [{
           display: true,
