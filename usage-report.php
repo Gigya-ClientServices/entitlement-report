@@ -219,7 +219,7 @@
                     <button type="button" class="btn btn-primary" onclick="UsageReport.downloadCSVData('growth');">Download Growth CSV Data</button>
                   </div>
                   <div class="col-md-12">
-                    <canvas id="growthChart" width="2000" height="600" class="data-canvas"></canvas>
+                    <canvas id="growthChart" width="1000" height="300" class="data-canvas"></canvas>
                   </div>
                 </div>
                 <div class="tab-pane fade" role="tabpanel" id="activity">
@@ -227,7 +227,7 @@
                     <button type="button" class="btn btn-primary" onclick="UsageReport.downloadCSVData('activity');">Download Activity CSV Data</button>
                   </div>
                   <div role="col-md-12">
-                    <canvas id="activityChart" width="2000" height="600" class="data-canvas"></canvas>
+                    <canvas id="activityChart" width="1000" height="300" class="data-canvas"></canvas>
                   </div>
                 </div>
               </div>

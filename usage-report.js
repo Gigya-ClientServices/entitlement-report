@@ -212,7 +212,7 @@ var UsageReport = {
   formatChartData: function(results) {
     var lineChartOptions = {
       responsive: false,
-      maintainAspectRatio: true,
+      maintainAspectRatio: false,
       tooltipTemplate: "<%%= value %>",
       bezierCurve: false,
       lineTension: 0,
