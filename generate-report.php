@@ -44,6 +44,7 @@
       if (array_key_exists ('startYear', $_POST)) $params['startYear'] = trim($_POST['startYear']);
       if (array_key_exists ('endMonth', $_POST)) $params['endMonth'] = trim($_POST['endMonth']);
       if (array_key_exists ('endYear', $_POST)) $params['endYear'] = trim($_POST['endYear']);
+      if (array_key_exists ('jobID', $_POST)) $params['jobID'] = trim($_POST['jobID']);
     }
 
     $report = new UsageReportGenerator($params, $config);

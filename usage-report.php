@@ -86,6 +86,8 @@
 		<link rel="stylesheet" href="css/custom.css">
     <link rel="stylesheet" href="css/loader.css">
 
+    <!-- Utils Javascript -->
+    <script src="utils.js" type="text/javascript"></script>
 		<!-- Page Javascript Logic -->
 		<script src="usage-report.js" type="text/javascript"></script>
 	</head>
@@ -187,7 +189,7 @@
 					<div class="form-group">
 						<label class="col-sm-2 control-label">&nbsp;</label>
 						<div class="col-sm-10">
-							<input type="button" value="Generate Report" class="btn btn-primary" class="form-control" onClick="UsageReport.submitReport(this)">
+							<input type="button" value="Generate Report" class="btn btn-primary" class="form-control" onClick="UsageReport.submitReport(this, Utils.generateUUID())">
 						</div>
 					</div>
 				</div>
@@ -218,16 +220,16 @@
                   <div class="col-md-12">
                     <button type="button" class="btn btn-primary" onclick="UsageReport.downloadCSVData('growth');">Download Growth CSV Data</button>
                   </div>
-                  <div class="col-md-12">
-                    <canvas id="growthChart" width="1000" height="300" class="data-canvas"></canvas>
+                  <div id="chart1" class="col-md-12">
+                    <canvas id="growthChart" width="1500" height="450" class="data-canvas"></canvas>
                   </div>
                 </div>
                 <div class="tab-pane fade" role="tabpanel" id="activity">
                   <div role="col-md-12">
                     <button type="button" class="btn btn-primary" onclick="UsageReport.downloadCSVData('activity');">Download Activity CSV Data</button>
                   </div>
-                  <div role="col-md-12">
-                    <canvas id="activityChart" width="1000" height="300" class="data-canvas"></canvas>
+                  <div id="chart2" role="col-md-12">
+                    <canvas id="activityChart" width="1500" height="450" class="data-canvas"></canvas>
                   </div>
                 </div>
               </div>

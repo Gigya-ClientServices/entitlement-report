@@ -4,10 +4,13 @@ require_once('lib/gigyaUtils.class.php');
 require_once('lib/monthDate.class.php');
 require_once('lib/dataCache.class.php');
 
+error_reporting(E_ERROR | E_PARSE);
+
 class UsageReportGenerator {
   private $config;
   private $logger;
   private $gigyaUtils;
+  private $gigyaUtilsTemp = null;
 
   private $hasRun = false;
 
@@ -20,6 +23,13 @@ class UsageReportGenerator {
   private $endMonth = null;
   private $endYear = null;
   private $mode = null;
+
+  private $jobID = "";
+  private $tempAppKey = NULL;
+  private $tempAppSecret = NULL;
+  private $groupID = "undefined";
+  private $jobAPIKey = "";
+  private $jobDatacenter = "";
 
   private $partnerInfo = array();
   private $sites = array();
@@ -40,157 +50,369 @@ class UsageReportGenerator {
     $this->startYear = $params['startYear'];
     $this->endMonth = $params['endMonth'];
     $this->endYear = $params['endYear'];
+    $this->jobID = $params['jobID'];
     $this->gigyaUtils = new GigyaUtils($this->userKey, $this->userSecret, $config);
-  }
-
-  /**
-    * getPartner
-    */
-  private function getPartner($apiKey, $dc) {
-    $this->logger->addLog('GetPartnerStart', "", LogLevels::debug);
-    // Retrieve Partner Info
-    // =====================
-    $params = new GSObject();
-    $params->put("partnerID", $this->partnerID);
-    $response = $this->gigyaUtils->request($apiKey, $dc, "admin.getPartner", $params);
-
-    if($response->getErrorCode()==0)
-    {
-      // SUCCESS! response status = OK
-      $this->logger->addLog('GetPartnerSuccess', "", LogLevels::debug);
-
-      $this->partnerInfo['partnerID'] = $response->getString('partnerID');
-      $this->partnerInfo['isTrial'] = $response->getBool('isTrial');
-      $this->partnerInfo['isEnabled'] = $response->getBool('isEnabled');
-      $this->partnerInfo['dataCenter'] = $response->getString('defaultDataCenter');
-      $this->partnerInfo['companyName'] = $response->getObject('customData')->getString('companyName');
-
-      $services = $response->getObject('services');
-      $this->partnerInfo['allowsComments'] = $services->getObject('comments')->getBool('enabled');
-      $this->partnerInfo['allowsGM'] = $services->getObject('gm')->getBool('enabled');
-      $this->partnerInfo['allowsDS'] = $services->getObject('ds')->getBool('enabled');
-      $this->partnerInfo['allowsIdS'] = $services->getObject('ids')->getBool('enabled');
-      $this->partnerInfo['allowsAudit'] = $services->getObject('audit')->getBool('enabled');
-      $this->partnerInfo['allowsSAMLIdP'] = $services->getObject('samlIdp')->getBool('enabled');
-      $this->partnerInfo['allowsNexus'] = $services->getObject('nexus')->getBool('enabled');
-
-      $accounts = $services->getObject('accounts');
-      $this->partnerInfo['allowsRaaS'] = $accounts->getBool('enabled');
-
-      $accountFeatures = $accounts->getArray('features');
-      $this->partnerInfo['allowsCI'] = false;
-      $this->partnerInfo['allowsCounters'] = false;
-      if ($accountFeatures != null) {
-        for ($i = 0; $i < $accountFeatures->length(); $i++) {
-          $str =  $accountFeatures->getString($i);
-          if ($str == 'insights') $this->partnerInfo['allowsCI'] = true;
-          if ($str == 'counters') $this->partnerInfo['allowsCounters'] = true;
-        }
-      }
-    }
-    else
-    {  // Error
-      $this->logger->addLog("Error Retrieving Partner Information", $response->getResponseText(), LogLevels::error);
-      return false;
-    }
-    $this->logger->addLog('GetPartnerFinsih', "", LogLevels::debug);
-    return true;
   }
 
   /**
     * getUserSites
     */
   private function getUserSites() {
-    $this->logger->addLog('GetUserSitesStart', "", LogLevels::debug);
-    // Retrieve User Sites for Partner
-    // ===============================
-    $params = new GSObject();
-    $params->put("targetPartnerID", $this->partnerID);
-    $response = $this->gigyaUtils->request($this->config->apiKey, $this->config->dataCenter, "admin.getUserSites", $params);
+    $ret = true;
+    $errorMessage = "Error Retrieving Partner Sites :";
+    $this->logger->addFunctionDebug(__FUNCTION__, "Start");
 
-    if($response->getErrorCode()==0)
-    {
-      // SUCCESS! response status = OK
-      $this->logger->addLog('GetUserSitesSuccess', "", LogLevels::debug);
-      $sites = $response->getArray("sites")->getObject(0)->getArray("sites");
-      $this->logger->addLog('GetUserSitesCount: ' . $sites->length(), "", LogLevels::debug);
-      for ($i = 0; $i < $sites->length(); $i++) {
-        $obj = $sites->getObject($i);
-        $id = $obj->getInt("siteID");
-        $s = array(
-          'id' => $id,
-          'apiKey' => $obj->getString("apiKey"),
-          "dc" => $obj->getString("dataCenter")
-        );
-        $this->sites[$id] = $s;
+    try {
+      // Retrieve User Sites for Partner
+      // ===============================
+      $params = new GSObject();
+      $params->put("targetPartnerID", $this->partnerID);
+      $response = $this->gigyaUtils->request($this->config->apiKey, $this->config->dataCenter, "admin.getUserSites", $params);
+
+      if ($response->getErrorCode()==0)
+      {
+        $this->logger->addFunctionDebug(__FUNCTION__, "Success");
+        $isFirst = true;
+
+        $sites = $response->getArray("sites")->getObject(0)->getArray("sites");
+        $this->logger->addFunctionDebug(__FUNCTION__, "Count", $sites->length());
+
+        for ($i = 0; $i < $sites->length(); $i++) {
+          $obj = $sites->getObject($i);
+          $id = $obj->getInt("siteID");
+          $apiKey = $obj->getString("apiKey");
+          $dc = $obj->getString("dataCenter");
+          $s = array(
+            'id' => $id,
+            'apiKey' => $apiKey,
+            "dc" => $dc
+          );
+          $this->sites[$id] = $s;
+
+          // Remember first APIKey and Datacenter so we can use these for other admin calls
+          if ($isFirst) {
+            $this->jobAPIKey = $apiKey;
+            $this->jobDatacenter = $dc;
+            $isFirst = false;
+          }
+        }
       }
+      else
+      {  // Error
+        $this->logger->addLog($errorMessage . $response->getErrorMessage(), $response->getResponseText(), LogLevels::error);
+        $ret = false;
+      }
+    } catch (Exception $e) {
+      $this->logger->addLog($errorMessage . $e->getMessage(), "Error Code: " . $e->getCode(), LogLevels::error);
+      $ret = false;
     }
-    else
-    {  // Error
-      $this->logger->addLog("Error Retrieving Partner Site Information", $response->getResponseText(), LogLevels::error);
-      return false;
+
+    $this->logger->addFunctionDebug(__FUNCTION__, "Complete");
+    return $ret;
+  }
+
+  /**
+    * selectUserGroup
+    */
+  private function selectUserGroup() {
+    $ret = true;
+    $errorMessage = "Errors retrieving partner permission groups: ";
+    $this->logger->addFunctionDebug(__FUNCTION__, "Start");
+
+    try {
+      // Get Permission Groups
+      // =====================
+      $params = new GSObject();
+      $params->put("partnerID", $this->partnerID);
+      // Must be run against an API Key on the Partner
+      $response = $this->gigyaUtils->request($this->jobAPIKey, $this->jobDatacenter, "admin.getGroups", $params);
+
+      if ($response->getErrorCode()==0) {
+        $respStr = $response->getData()->toJsonString();
+        $this->logger->addFunctionDebug(__FUNCTION__, "Success","",$respStr);
+        $resp = json_decode($respStr);
+        if ($resp === NULL) {
+          throw new Exception("Could not process response data in function - " . __FUNCTION__, 500001);
+        }
+        $groups = $resp->groups;
+        if ($groups === NULL) {
+          throw new Exception("Could not process group data", 500002);
+        }
+
+        $admins = $groups->_admins;
+        $csadmins = $groups->_cs_admins;
+
+        $adminsUsers = (($admins !== NULL)?$admins->users:NULL);
+        $csadminsUsers = (($csadmins !== NULL)?$csadmins->users:NULL);
+
+        if (($csadminsUsers !== NULL) && (array_search($this->userKey, $csadminsUsers) !== FALSE)) {
+          $this->groupID = "_cs_admins";
+        }
+        elseif (($adminsUsers !== NULL) && (array_search($this->userKey, $adminsUsers) !== FALSE)) {
+          $this->groupID = "_admins";
+        }
+        else {
+          $this->groupID = "undefined";
+          throw new Exception("User does not have proper permissions. Must be a member of the '_cs_admin' or '_admin' group of the partner ID.", 401001);
+        }
+        $this->logger->addFunctionDebug(__FUNCTION__, "Group", $this->groupID);
+      }
+      else {
+        $this->logger->addLog($errorMessage . $response->getErrorMessage(), $response->getResponseText(), LogLevels::error);
+        $ret = false;
+      }
+    } catch (Exception $e) {
+        $this->logger->addLog($errorMessage . $e->getMessage(), "Error Code: " . $e->getCode(), LogLevels::error);
+        $ret = false;
     }
-    $this->logger->addLog('GetUserSitesFinish', "", LogLevels::debug);
-    return true;
+
+    $this->logger->addFunctionDebug(__FUNCTION__, "Complete");
+    return $ret;
+  }
+
+  /**
+    * grantTempAppKeySiteAccess
+    */
+  private function grantTempAppKeySiteAccess() {
+    $ret = true;
+    $errorMessage = "Errors granting permissions to Temp App Key: ";
+    $this->logger->addFunctionDebug(__FUNCTION__, "Start");
+
+    try {
+      // Grant App Key Access
+      // ====================
+      $params = new GSObject();
+      $params->put("name", $this->jobID);
+      $params->put("groupID", $this->groupID);
+      $params->put("partnerID", $this->partnerID);
+      $arr = new GSArray();
+      $arr->add($this->tempAppKey);
+      $params->put("addUsers", $arr);
+      // Must be run against an API Key on the Partner
+      $response = $this->gigyaUtils->request($this->jobAPIKey, $this->jobDatacenter, "admin.updateGroup", $params);
+
+      if ($response->getErrorCode()==0) {
+        $this->logger->addFunctionDebug(__FUNCTION__, "Success", "", $response->getResponseText());
+      }
+      else {
+        $this->logger->addLog($errorMessage . $response->getErrorMessage(), $response->getResponseText(), LogLevels::error);
+        $ret = false;
+      }
+    } catch (Exception $e) {
+      $this->logger->addLog($errorMessage . $e->getMessage(), "Error Code: " . $e->getCode(), LogLevels::error);
+      $ret = false;
+    }
+    $this->logger->addFunctionDebug(__FUNCTION__, "Complete");
+    return $ret;
+  }
+
+  /**
+    * createTempAppKey
+    */
+  private function createTempAppKey() {
+    $ret = true;
+    $errorMessage = "Errors creating Temp App Key: ";
+    $this->logger->addFunctionDebug(__FUNCTION__, "Start");
+
+    try {
+      // Create Temporary App Key
+      // ========================
+      $params = new GSObject();
+      $params->put("name", $this->jobID);
+      $params->put("keyType", "highRate");
+      $params->put("ownerPartnerId", $this->partnerID);
+      $params->put("description", "Temporary App Key for Report Generation Job: " . $this->jobID);
+      $response = $this->gigyaUtils->request($this->jobAPIKey, $this->jobDatacenter, "admin.createUserKey", $params);
+
+      if ($response->getErrorCode()==0) {
+        $this->logger->addFunctionDebug(__FUNCTION__, "Success", "", $response->getResponseText());
+
+        $resp = json_decode($response->getData()->toJsonString());
+        if ($resp === NULL) throw new Exception("Could not process response data in function - " . __FUNCTION__, 500001);
+        $user = $resp->user;
+        if ($user === NULL) throw new Exception("Could not process user data", 500003);
+
+        $this->tempAppKey = $user->userKey;
+        $this->tempAppSecret = $user->userSecret;
+        $this->gigyaUtilsTemp = new GigyaUtils($this->tempAppKey, $this->tempAppSecret, $this->config);
+
+        $this->logger->addFunctionDebug(__FUNCTION__, "UserKey", $this->tempAppKey . "::" . $this->tempAppSecret);
+
+        //if ($this->tempAppKey)
+
+      } else {
+        $this->logger->addLog($errorMessage . $response->getErrorMessage(), $response->getResponseText(), LogLevels::error);
+        $ret = false;
+      }
+    } catch (Exception $e) {
+      $this->logger->addLog($errorMessage . $e->getMessage(), "Error Code: " . $e->getCode(), LogLevels::error);
+      $ret = false;
+    }
+
+    $this->logger->addFunctionDebug(__FUNCTION__, "Complete");
+    return $ret;
+  }
+
+  /**
+    * deleteTempAppKey
+    */
+  private function deleteTempAppKey() {
+    $ret = true;
+    $errorMessage = "Error deleting Temp App Key: ";
+    $this->logger->addFunctionDebug(__FUNCTION__, "Start");
+
+    try {
+      // Delete Temporary App Key
+      // ========================
+      $params = new GSObject();
+      $params->put("deleteSelf", "true");
+      $response = $this->gigyaUtilsTemp->request($this->jobAPIKey, $this->jobDatacenter, "admin.deleteUserKey", $params);
+
+      if ($response->getErrorCode()==0)
+      {
+        $this->logger->addFunctionDebug(__FUNCTION__, "Success");
+        $this->tempAppKey = NULL;
+        $this->tempAppSecret = NULL;
+      }
+      else {
+        $this->logger->addLog($errorMessage . $response->getErrorMessage(), $response->getResponseText(), LogLevels::error);
+        $ret = false;
+      }
+    } catch (Exception $e) {
+      $this->logger->addLog($errorMessage . $e->getMessage(), "Error Code: " . $e->getCode(), LogLevels::error);
+      $ret = false;
+    }
+
+    $this->logger->addFunctionDebug(__FUNCTION__, "Complete");
+    return $ret;
+  }
+
+  /**
+    * getPartner
+    */
+  private function getPartner($apiKey, $dc) {
+    $ret = true;
+    $errorMessage = "Error Retrieving Partner Information: ";
+    $this->logger->addFunctionDebug(__FUNCTION__, "Start");
+
+    try {
+      // Retrieve Partner Info
+      // =====================
+      $params = new GSObject();
+      $params->put("partnerID", $this->partnerID);
+      $response = $this->gigyaUtilsTemp->request($apiKey, $dc, "admin.getPartner", $params);
+
+      if ($response->getErrorCode()==0)
+      {
+        // SUCCESS! response status = OK
+        $this->logger->addFunctionDebug(__FUNCTION__, "Success");
+
+        $this->partnerInfo['partnerID'] = $response->getString('partnerID');
+        $this->partnerInfo['isTrial'] = $response->getBool('isTrial');
+        $this->partnerInfo['isEnabled'] = $response->getBool('isEnabled');
+        $this->partnerInfo['dataCenter'] = $response->getString('defaultDataCenter');
+        $this->partnerInfo['companyName'] = $response->getObject('customData')->getString('companyName');
+
+        $services = $response->getObject('services');
+        $this->partnerInfo['allowsComments'] = $services->getObject('comments')->getBool('enabled');
+        $this->partnerInfo['allowsGM'] = $services->getObject('gm')->getBool('enabled');
+        $this->partnerInfo['allowsDS'] = $services->getObject('ds')->getBool('enabled');
+        $this->partnerInfo['allowsIdS'] = $services->getObject('ids')->getBool('enabled');
+        $this->partnerInfo['allowsAudit'] = $services->getObject('audit')->getBool('enabled');
+        $this->partnerInfo['allowsSAMLIdP'] = $services->getObject('samlIdp')->getBool('enabled');
+        $this->partnerInfo['allowsNexus'] = $services->getObject('nexus')->getBool('enabled');
+
+        $accounts = $services->getObject('accounts');
+        $this->partnerInfo['allowsRaaS'] = $accounts->getBool('enabled');
+
+        $accountFeatures = $accounts->getArray('features');
+        $this->partnerInfo['allowsCI'] = false;
+        $this->partnerInfo['allowsCounters'] = false;
+        if ($accountFeatures != null) {
+          for ($i = 0; $i < $accountFeatures->length(); $i++) {
+            $str =  $accountFeatures->getString($i);
+            if ($str == 'insights') $this->partnerInfo['allowsCI'] = true;
+            if ($str == 'counters') $this->partnerInfo['allowsCounters'] = true;
+          }
+        }
+      }
+      else
+      {  // Error
+        $this->logger->addLog($errorMessage . $response->getErrorMessage(), $response->getResponseText(), LogLevels::error);
+        $ret = false;
+      }
+    } catch (Exception $e) {
+      $this->logger->addLog($errorMessage . $e->getMessage(), "Error Code: " . $e->getCode(), LogLevels::error);
+      $ret = false;
+    }
+
+    $this->logger->addFunctionDebug(__FUNCTION__, "Complete");
+    return $ret;
   }
 
   /**
     * retrieveSiteConfig
     */
   private function retrieveSiteConfig($apiKey, $dc) {
-    $this->logger->addLog('RetrieveSiteConfigStart', "", LogLevels::debug);
-    // Retrieve APIKey Config
-    // ======================
-    $params = new GSObject();
-    $params->put("includeServices", "true");
-    $params->put("includeSiteGroupConfig", "true");
-    $params->put("includeGigyaSettings", "true");
-    $params->put("apiKey", $apiKey);
-    $response = $this->gigyaUtils->request($apiKey, $dc, "admin.getSiteConfig", $params);
-
     $ret = array();
+    $errorMessage = "Retrieve Site Config Errors: ";
+    $this->logger->addFunctionDebug(__FUNCTION__, "Start");
 
-    if($response->getErrorCode()==0)
-    {
-      $this->logger->addLog('RetrieveSiteConfigSuccess', "", LogLevels::debug);
+    try {
+      // Retrieve APIKey Config
+      // ======================
+      $params = new GSObject();
+      $params->put("includeServices", "true");
+      $params->put("includeSiteGroupConfig", "true");
+      $params->put("includeGigyaSettings", "true");
+      $params->put("apiKey", $apiKey);
+      $response = $this->gigyaUtilsTemp->request($apiKey, $dc, "admin.getSiteConfig", $params);
 
-      $ret['isChild'] = false;
-      $ret['isParent'] = false;
-      $ret['childSiteCount'] = '';
-      $ret['parentKey'] = "";
-      try {
-        $ret['parentKey'] = $response->getString('siteGroupOwner');
-        if ($ret['parentKey'] != "") $ret['isChild'] = true;
-      } catch (Exception $e) {
+      if ($response->getErrorCode()==0)
+      {
+        $this->logger->addFunctionDebug(__FUNCTION__, "Success");
 
-      }
+        $ret['isChild'] = false;
+        $ret['isParent'] = false;
+        $ret['childSiteCount'] = '';
+        $ret['parentKey'] = "";
+        try {
+          $ret['parentKey'] = $response->getString('siteGroupOwner');
+          if ($ret['parentKey'] != "") $ret['isChild'] = true;
+        } catch (Exception $e) {
 
-      try {
-        $arr = $response->getObject('siteGroupConfig')->getArray('members');
-        if ($arr != null) {
-          $ret['childSiteCount'] = $arr->length();
-          $ret['isParent'] = true;
         }
-      } catch (Exception $e) {
 
+        try {
+          $arr = $response->getObject('siteGroupConfig')->getArray('members');
+          if ($arr != null) {
+            $ret['childSiteCount'] = $arr->length();
+            $ret['isParent'] = true;
+          }
+        } catch (Exception $e) {
+
+        }
+
+        if ($ret['isChild'] == false) {
+          $services = $response->getObject('services');
+          $ret['hasRaaS'] = $services->getObject('accounts')->getBool('enabled');
+          $ret['hasDS'] = $services->getObject('ds')->getBool('enabled');
+          $ret['hasIdS'] = $services->getObject('ids')->getBool('enabled');
+          $ret['hasSSO'] = $response->getObject('siteGroupConfig')->getBool('enableSSO');
+
+          // TODO: Get count of trusted sites and aggregation
+        }
       }
-
-      if ($ret['isChild'] == false) {
-        $services = $response->getObject('services');
-        $ret['hasRaaS'] = $services->getObject('accounts')->getBool('enabled');
-        $ret['hasDS'] = $services->getObject('ds')->getBool('enabled');
-        $ret['hasIdS'] = $services->getObject('ids')->getBool('enabled');
-        $ret['hasSSO'] = $response->getObject('siteGroupConfig')->getBool('enableSSO');
-
-        // TODO: Get count of trusted sites and aggregation
+      else {
+        $this->logger->addLog($errorMessage . $response->getErrorMessage(), $response->getResponseText(), LogLevels::error);
+        $ret = NULL;
       }
-    }
-    else {
-      $this->logger->addLog("Retrieve Site Config Errors: " . $response->getErrorMessage(), $response->getResponseText(), LogLevels::error);
-      return null;
+    } catch (Exception $e) {
+      $this->logger->addLog($errorMessage . $e->getMessage(), "Error Code: " . $e->getCode(), LogLevels::error);
+      $ret = NULL;
     }
 
-    $this->logger->addLog('RetrieveSiteConfigFinish', "", LogLevels::debug);
+    $this->logger->addFunctionDebug(__FUNCTION__, "Complete");
     return $ret;
   }
 
@@ -198,26 +420,35 @@ class UsageReportGenerator {
     * retrieveUserCountsForMonth
     */
   private function retrieveUserCountsForMonth($apiKey, $dc, $siteId, $month, $year) {
-    $this->logger->addLog('RetrieveUserCountsForMonthStart', "{$month}/{$year}", LogLevels::debug);
-    // TODO: Check Database Cache for values first, if the value does not exist or is expired continue
-
-    $query = "select count(*) from accounts where created <= '" . MonthDate::lastMomentOf($month, $year) . "'";
-    $this->logger->addLog('RetrieveUserCountsForMonthQuery', $query, LogLevels::debug);
-    $response = $this->gigyaUtils->query($apiKey, $dc, $query);
     $ret = 0;
-    if($response->getErrorCode()==0)
-    {
-      $this->logger->addLog('RetrieveUserCountsForMonthSuccess', $response->getResponseText(), LogLevels::debug);
-      $ret = $response->getArray('results')->getObject(0)->getInt('count(*)');
-    }
-    else {
-      $this->logger->addLog("Errors retrieving counts: " . $response->getErrorMessage(), $response->getResponseText(), LogLevels::error);
-      return null;
+    $errorMessage = "Errors retrieving monthly site user count: ";
+    $this->logger->addFunctionDebug(__FUNCTION__, "Start", "", "{$month}/{$year}");
+
+    try {
+      // TODO: Check Database Cache for values first, if the value does not exist or is expired continue
+
+      $query = "select count(*) from accounts where created <= '" . MonthDate::lastMomentOf($month, $year) . "'";
+      $this->logger->addFunctionDebug(__FUNCTION__, "Query", $query);
+
+      $response = $this->gigyaUtilsTemp->query($apiKey, $dc, $query);
+      $ret = 0;
+      if ($response->getErrorCode()==0)
+      {
+        $this->logger->addFunctionDebug(__FUNCTION__, "Success", $response->getResponseText());
+        $ret = $response->getArray('results')->getObject(0)->getInt('count(*)');
+      }
+      else {
+        $this->logger->addLog($errorMessage . $response->getErrorMessage(), $response->getResponseText(), LogLevels::error);
+        $ret = NULL;
+      }
+      // TODO: Store values into cache if they were retrieved
+
+    } catch (Exception $e) {
+      $this->logger->addLog($errorMessage . $e->getMessage(), "Error Code: " . $e->getCode(), LogLevels::error);
+      $ret = NULL;
     }
 
-    // TODO: Store values into cache if they were retrieved
-
-    $this->logger->addLog('RetrieveUserCountsForMonthSuccess', "", LogLevels::debug);
+    $this->logger->addFunctionDebug(__FUNCTION__, "Complete");
     return $ret;
   }
 
@@ -225,22 +456,28 @@ class UsageReportGenerator {
     * retrieveUserCounts
     */
   private function retrieveUserCounts($apiKey, $dc) {
-    $this->logger->addLog('RetrieveUserCountsStart', "", LogLevels::debug);
-
-    $query = "select count(*) from accounts";
-    $response = $this->gigyaUtils->query($apiKey, $dc, $query);
     $ret = 0;
-    if($response->getErrorCode()==0)
-    {
-      $this->logger->addLog('RetrieveUserCountsSuccess', "", LogLevels::debug);
-      $ret = $response->getArray('results')->getObject(0)->getInt('count(*)');
-    }
-    else {
-      $this->logger->addLog("Errors retrieving counts: " . $response->getErrorMessage(), $response->getResponseText(), LogLevels::error);
-      return null;
+    $errorMessage = "Error retrieving site user count: ";
+    $this->logger->addFunctionDebug(__FUNCTION__, "Start");
+
+    try {
+      $query = "select count(*) from accounts";
+      $response = $this->gigyaUtilsTemp->query($apiKey, $dc, $query);
+      if ($response->getErrorCode()==0)
+      {
+        $this->logger->addFunctionDebug(__FUNCTION__, "Success");
+        $ret = $response->getArray('results')->getObject(0)->getInt('count(*)');
+      }
+      else {
+        $this->logger->addLog($errorMessage . $response->getErrorMessage(), $response->getResponseText(), LogLevels::error);
+        $ret = NULL;
+      }
+    } catch (Exception $e) {
+      $this->logger->addLog($errorMessage . $e->getMessage(), "Error Code: " . $e->getCode(), LogLevels::error);
+      $ret = NULL;
     }
 
-    $this->logger->addLog('RetrieveUserCountsFinish', "", LogLevels::debug);
+    $this->logger->addFunctionDebug(__FUNCTION__, "Complete");
     return $ret;
   }
 
@@ -248,32 +485,38 @@ class UsageReportGenerator {
     * retrieveLastLogin
     */
   private function retrieveLastLogin($apiKey, $dc) {
-    $this->logger->addLog('RetrieveLastLoginStart', "", LogLevels::debug);
-    $query = "select lastLogin from accounts order by lastLogin DESC limit 1";
-    $response = $this->gigyaUtils->query($apiKey, $dc, $query);
+    $ret = "";
+    $errorMessage = "Error retrieving last login: ";
+    $this->logger->addFunctionDebug(__FUNCTION__, "Start");
 
-    $ret = '';
+    try {
+      $query = "select lastLogin from accounts order by lastLogin DESC limit 1";
+      $response = $this->gigyaUtilsTemp->query($apiKey, $dc, $query);
 
-    if($response->getErrorCode()==0)
-    {
-      $this->logger->addLog('RetrieveLastLoginSuccess', "", LogLevels::debug);
-      try {
-        $results = $response->getArray('results');
-        if ($results->length() > 0) {
-          $ret = $results->getObject(0)->getString('lastLogin');
-        } else {
+      if ($response->getErrorCode()==0)
+      {
+        $this->logger->addFunctionDebug(__FUNCTION__, "Success");
+        try {
+          $results = $response->getArray('results');
+          if ($results->length() > 0) {
+            $ret = $results->getObject(0)->getString('lastLogin');
+          } else {
+            $ret = '-Never-';
+          }
+        } catch (Exception $e) {
           $ret = '-Never-';
         }
-      } catch (Exception $e) {
-        $ret = '-Never-';
       }
-    }
-    else {
-      $this->logger->addLog("Errors retrieving data: " . $response->getErrorMessage(), $response->getResponseText(), LogLevels::error);
-      return null;
+      else {
+        $this->logger->addLog($errorMessage . $response->getErrorMessage(), $response->getResponseText(), LogLevels::error);
+        $ret = NULL;
+      }
+    } catch (Exception $e) {
+      $this->logger->addLog($errorMessage . $e->getMessage(), "Error Code: " . $e->getCode(), LogLevels::error);
+      $ret = NULL;
     }
 
-    $this->logger->addLog('RetrieveLastLoginFinish', "", LogLevels::debug);
+    $this->logger->addFunctionDebug(__FUNCTION__, "Complete");
     return $ret;
   }
 
@@ -281,32 +524,38 @@ class UsageReportGenerator {
     * retrieveLastCreated
     */
   private function retrieveLastCreated($apiKey, $dc) {
-    $this->logger->addLog('RetrieveLastCreatedStart', "", LogLevels::debug);
-    $query = "select created from accounts order by created DESC limit 1";
-    $response = $this->gigyaUtils->query($apiKey, $dc, $query);
+    $ret = "";
+    $errorMessage = "Error retrieving last creation: ";
+    $this->logger->addFunctionDebug(__FUNCTION__, "Start");
 
-    $ret = '';
+    try {
+      $query = "select created from accounts order by created DESC limit 1";
+      $response = $this->gigyaUtilsTemp->query($apiKey, $dc, $query);
 
-    if($response->getErrorCode()==0)
-    {
-      $this->logger->addLog('RetrieveLastCreatedSuccess', "", LogLevels::debug);
-      try {
-        $results = $response->getArray('results');
-        if ($results->length() > 0) {
-          $ret = $results->getObject(0)->getString('created');
-        } else {
+      if ($response->getErrorCode()==0)
+      {
+        $this->logger->addFunctionDebug(__FUNCTION__, "Success");
+        try {
+          $results = $response->getArray('results');
+          if ($results->length() > 0) {
+            $ret = $results->getObject(0)->getString('created');
+          } else {
+            $ret = '-Never-';
+          }
+        } catch (Exception $e) {
           $ret = '-Never-';
         }
-      } catch (Exception $e) {
-        $ret = '-Never-';
       }
-    }
-    else {
-      $this->logger->addLog("Errors retrieving data: " . $response->getErrorMessage(), $response->getResponseText(), LogLevels::error);
-      return null;
+      else {
+        $this->logger->addLog($errorMessage . $response->getErrorMessage(), $response->getResponseText(), LogLevels::error);
+        $ret = NULL;
+      }
+    } catch (Exception $e) {
+      $this->logger->addLog($errorMessage . $e->getMessage(), "Error Code: " . $e->getCode(), LogLevels::error);
+      $ret = NULL;
     }
 
-    $this->logger->addLog('RetrieveLastCreatedFinish', "", LogLevels::debug);
+    $this->logger->addFunctionDebug(__FUNCTION__, "Complete");
     return $ret;
   }
 
@@ -314,7 +563,9 @@ class UsageReportGenerator {
   	* calculateSummary
   	*/
   private function calculateSummary() {
-    $this->logger->addLog('CalculateSummary', "", LogLevels::debug);
+    $errorMessage = "";
+    $this->logger->addFunctionDebug(__FUNCTION__, "Start");
+
     $totalUsers = 0;
     $lastLogin = '';
     $lastCreated = '';
@@ -375,10 +626,15 @@ class UsageReportGenerator {
   	* gatherPartnerInformation
   	*/
   private function gatherPartnerInformation() {
+    $ret = true;
     $firstCount = true;
+    $errorMessage = "";
+    $this->logger->addFunctionDebug(__FUNCTION__, "Start");
+
+    // This is already done before doing anything else, because the job API Key and datacenter are needed for service calls
     // Step 1: Retrieve User Sites for Partner
     // =======================================
-    if (!$this->getUserSites()) return false;
+    // if (!$this->getUserSites()) return false;
 
     // Step 2: Loop through all the sites calling and gather additional information
     // ============================================================================
@@ -467,7 +723,10 @@ class UsageReportGenerator {
     * formatReport
     */
   private function formatReport() {
-    $this->logger->addLog('Format Report', "", LogLevels::debug);
+    $ret = true;
+    $errorMessage = "";
+    $this->logger->addFunctionDebug(__FUNCTION__, "Start");
+
     $output = array();
     $errors = $this->logger->getErrorLog();
     $debug = $this->logger->getDebugLog();
@@ -501,6 +760,15 @@ class UsageReportGenerator {
   private function performDataValidation() {
     $ret = true;
     $missingFields = array();
+    $errorMessage = "";
+    $this->logger->addFunctionDebug(__FUNCTION__, "Start");
+
+    if ($this->jobID == "") {
+      $this->logger->addLog("Form Submissions Error", "Report can not generate without a JobID", LogLevels::error);
+      $ret = false;
+      return $ret;
+    }
+
     if ($this->partnerID == "") {
       array_push($missingFields, "Partner ID");
     }
@@ -547,12 +815,20 @@ class UsageReportGenerator {
     return $ret;
   }
 
+  public function cleanUp() {
+    if ($this->tempAppKey !== NULL) $this->deleteTempAppKey();
+  }
+
   public function getReport() {
     if (!$this->hasRun) {
       if ($this->performDataValidation()) {
-        $this->gatherPartnerInformation();
+        if ($this->getUserSites() && $this->selectUserGroup() && $this->createTempAppKey() && $this->grantTempAppKeySiteAccess()) {
+          $this->gatherPartnerInformation();
+          $this->deleteTempAppKey();
+        }
       }
     }
+    $this->cleanUp();
 
     return $this->formatReport();
   }

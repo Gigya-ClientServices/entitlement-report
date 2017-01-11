@@ -125,6 +125,11 @@
       if (($level & LogLevels::critical) > 0) $this->addCritical($message, $extended);
     }
 
+    public function addFunctionDebug($funcName, $stepName, $message = "", $extended = "") {
+      $fullMsg = $funcName . "::" . $stepName . ($message!=""?" - " . $message:"");
+      $this->addDebug($fullMsg, $extended);
+    }
+
     public function getDebugLog() {
       return $this->l_debug;
     }

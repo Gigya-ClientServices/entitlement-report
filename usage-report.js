@@ -12,8 +12,9 @@ var UsageReport = {
   startYear: "",
   endMonth: "",
   endYear: "",
+  jobID: "",
 
-  submitReport: function(input) {
+  submitReport: function(input, jobId) {
     var w = $( window ).width();
     var h = $( window ).height();
 
@@ -33,6 +34,7 @@ var UsageReport = {
     UsageReport.startYear = $('#startYear').val();
     UsageReport.endMonth = $('#endMonth').val();
     UsageReport.endYear = $('#endYear').val();
+    UsageReport.jobID = jobId;
 
     $.ajax(
       'generate-report.php',
@@ -47,7 +49,8 @@ var UsageReport = {
           'startMonth': $('#startMonth').val(),
           'startYear': $('#startYear').val(),
           'endMonth': $('#endMonth').val(),
-          'endYear': $('#endYear').val()
+          'endYear': $('#endYear').val(),
+          'jobID': UsageReport.jobID
         },
         success: function(data, status, e) {
           //alert('success');
@@ -220,19 +223,18 @@ var UsageReport = {
       tooltips: {
         enabled: true
       }
-       /*,
-      scales: {
-        yAxes: [{
-          display: true,
-          ticks: {
-            suggestedMin: 0    // minimum will be 0, unless there is a lower value.
-          }
-        }]
-      }*/
     };
 
+    // Resize the canvas to fit prior to rendering
     var growthCtx = $('#growthChart');
     var activityCtx = $('#activityChart');
+    var w = window.innerWidth * 0.975;
+    var h = w * 0.3;
+    growthCtx.attr("width", w);
+    activityCtx.attr("width", w);
+    growthCtx.attr("height", h);
+    activityCtx.attr("height", h);
+
     var growthChart = new Chart(growthCtx, {
       type: 'line',
       tension: 0,
