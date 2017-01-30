@@ -11,4 +11,12 @@ CREATE TABLE IF NOT EXISTS `usage` (
   primary key (site_id, month, year)
 );
 
+CREATE TABLE IF NOT EXISTS `site_stats` (
+  apikey VARCHAR(70) NOT NULL,
+  count INT UNSIGNED ZEROFILL NOT NULL,
+  last_login_date  TIMESTAMP NOT NULL,
+  last_create_date  TIMESTAMP NOT NULL,
+  last_cached_date TIMESTAMP NOT NULL DEFAULT NOW(),
+);
+
 GRANT ALL PRIVILEGES ON gigya_usage . * TO 'gigya_usage'@'localhost';

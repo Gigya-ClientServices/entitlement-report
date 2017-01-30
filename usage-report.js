@@ -218,7 +218,7 @@ var UsageReport = {
       maintainAspectRatio: false,
       tooltipTemplate: "<%%= value %>",
       bezierCurve: false,
-      lineTension: 0,
+      lineTension: 0.01,
       tension:0,
       tooltips: {
         enabled: true
@@ -261,7 +261,17 @@ var UsageReport = {
             'rgba(153, 102, 255, 1)',
             'rgba(255, 159, 64, 1)'
           ],
-          borderWidth: 1
+          borderWidth: 1,
+          lineTension: 0.1,
+          pointBorderColor: "rgba(255,99,132,1)",
+          pointBackgroundColor: "#fff",
+          pointBorderWidth: 1,
+          pointHoverRadius: 5,
+          pointHoverBackgroundColor: "rgba(255, 99, 132, 0.2)",
+          pointHoverBorderColor: "rgba(255,99,132,1)",
+          pointHoverBorderWidth: 2,
+          pointRadius: 1,
+          pointHitRadius: 10,
         }]
       },
       options: lineChartOptions
@@ -292,7 +302,17 @@ var UsageReport = {
             'rgba(153, 102, 255, 1)',
             'rgba(255, 159, 64, 1)'
           ],
-          borderWidth: 1
+          borderWidth: 1,
+          lineTension: 0.01,
+          pointBorderColor: "rgba(54, 162, 235, 1)",
+          pointBackgroundColor: "#fff",
+          pointBorderWidth: 1,
+          pointHoverRadius: 5,
+          pointHoverBackgroundColor: "rgba(54, 162, 235, 0.2)",
+          pointHoverBorderColor: "rgba(54, 162, 235, 1)",
+          pointHoverBorderWidth: 2,
+          pointRadius: 1,
+          pointHitRadius: 10,
         }]
       },
       options: lineChartOptions
